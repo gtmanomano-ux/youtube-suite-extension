@@ -420,12 +420,14 @@ ytm-playables-shelf-renderer {
 
   const hasKeywords = () => partialKeywords.length > 0 || exactKeywords.length > 0;
 
+  // 14個のセレクタを1本にまとめる (querySelectorAll の呼び出しを 14回 → 1回に)
+  const TEXT_SELECTOR = TEXT_SELECTORS.join(",");
+
   /**
-   * カードのテキストを集める。
-   *   items … タイトル・チャンネル名などの「項目単位」 (完全一致の判定用)
-   *   all   … カード内の全テキスト (部分一致の判定用。セレクタ漏れがあっても拾える)
+   * 完全一致の判定に使う「項目単位」のテキストを集める。
+   * 完全一致キーワードが登録されているときだけ呼ぶ。
    */
-  function collectCardTexts(card) {
+  function collectCardItems(card) {
     const items = [];
     const push = (t) => {
       if (!t) return;
@@ -440,36 +442,33 @@ ytm-playables-shelf-renderer {
       push(el.getAttribute("aria-label"));
     });
 
-    for (const sel of TEXT_SELECTORS) {
-      card.querySelectorAll(sel).forEach((el) => push(el.textContent));
-    }
+    card.querySelectorAll(TEXT_SELECTOR).forEach((el) => push(el.textContent));
 
     if (card.getAttribute) {
       push(card.getAttribute("title"));
       push(card.getAttribute("aria-label"));
     }
-
-    // セレクタに依存しない保険。YouTube の DOM 変更で項目が拾えなくても
-    // 部分一致だけは必ず効くようにする。
-    const all = (card.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200);
-
-    return { items, all };
+    return items;
   }
 
-  function matchesKeyword(card) {
-    const { items, all } = collectCardTexts(card);
-
+  /**
+   * @param {Element} card
+   * @param {string} all カード内の全テキスト (呼び出し側で取得済みのものを使い回す)
+   */
+  function matchesKeyword(card, all) {
     // 完全一致：いずれかの項目と丸ごと一致するか
     if (exactKeywords.length) {
-      for (const item of items) {
+      for (const item of collectCardItems(card)) {
         const n = normalize(item);
         if (n && exactKeywords.includes(n)) return true;
       }
     }
 
-    // 部分一致：カード内のどこかに含まれていればよい
+    // 部分一致：カード内のどこかに含まれていればよい。
+    // textContent はタイトル・チャンネル名・説明をすべて含むため、
+    // セレクタに依存せず1回の読み取りで判定できる。
     if (partialKeywords.length) {
-      const haystack = normalize(items.join(" | ") + " | " + all);
+      const haystack = normalize(all);
       if (haystack) {
         for (const kw of partialKeywords) {
           if (haystack.includes(kw)) return true;
@@ -479,17 +478,39 @@ ytm-playables-shelf-renderer {
     return false;
   }
 
+  // カードごとの判定結果を覚えておき、内容が変わらない限り再判定しない。
+  // (YouTube は仮想スクロールで要素を使い回すため、テキストを鍵にして判定する)
+  const keywordCache = new WeakMap();
+  const textKey = (s) => s.length + "|" + s.slice(0, 80);
+
   function scanKeywords() {
     if (!S.keywordEnabled || !hasKeywords()) return;
     let hidden = 0;
+    let evaluated = 0;
+
     document.querySelectorAll(CARD_SELECTOR).forEach((card) => {
-      const hide = matchesKeyword(card);
+      const all = (card.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200);
+      const key = textKey(all);
+
+      let hide;
+      const cached = keywordCache.get(card);
+      if (cached && cached.key === key) {
+        hide = cached.hide;
+      } else {
+        hide = matchesKeyword(card, all);
+        keywordCache.set(card, { key, hide });
+        evaluated++;
+      }
+
       if (hide) hidden++;
-      card.classList.toggle("yts-hidden-keyword", hide);
+      // 変化がないときは classList を触らない (スタイル再計算を避ける)
+      if (card.classList.contains("yts-hidden-keyword") !== hide) {
+        card.classList.toggle("yts-hidden-keyword", hide);
+      }
     });
     if (DEBUG) {
       console.debug(
-        `[YouTube Suite] keyword hidden=${hidden} partial=${JSON.stringify(
+        `[YouTube Suite] keyword hidden=${hidden} evaluated=${evaluated} partial=${JSON.stringify(
           partialKeywords
         )} exact=${JSON.stringify(exactKeywords)}`
       );
@@ -740,6 +761,9 @@ ytm-playables-shelf-renderer {
     return null;
   }
 
+  // 判定済みカードを覚えておき、内容が変わらない限り再探索しない
+  const buttonCache = new WeakMap();
+
   function decorateChannelButtons() {
     if (!S.blockButton) return;
 
@@ -749,6 +773,12 @@ ytm-playables-shelf-renderer {
 
     document.querySelectorAll(BUTTON_CARD_SELECTOR).forEach((card) => {
       if (card.hasAttribute("data-yts-hidden")) return;
+
+      const key = textKey((card.textContent || "").slice(0, 200));
+      const cached = buttonCache.get(card);
+      // 同じ内容で、ボタンも生きているならスキップ
+      if (cached === key && card.querySelector(".yts-block-btn")) return;
+
       // 入れ子カードは内側だけを対象にする
       if (card.querySelector(BUTTON_CARD_SELECTOR)) return;
       total++;
@@ -758,7 +788,10 @@ ytm-playables-shelf-renderer {
         if (!sample) sample = card;
         return;
       }
-      if (syncBlockButton(target.node, target.name)) done++;
+      if (syncBlockButton(target.node, target.name)) {
+        done++;
+        buttonCache.set(card, key);
+      }
     });
 
     if (DEBUG) {
@@ -1152,15 +1185,25 @@ ytm-playables-shelf-renderer {
   });
 
   function startObserving() {
+    // characterData は監視しない。YouTube は視聴回数や経過時間を頻繁に
+    // 書き換えるため、監視すると通知が止まらず CPU を食い続ける。
+    // 遅れて描画されたタイトルは下の定期スキャンで拾う。
     observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
-      characterData: true,
       attributes: true,
       attributeFilter: ["title", "aria-label", "href", "is-shorts", "overlay-style"],
     });
-    // 非同期描画の取りこぼし対策
-    scanIntervalId = setInterval(runScan, 1500);
+
+    // 非同期描画の取りこぼし対策。ブラウザが暇なときに実行する。
+    const idle = (fn) =>
+      typeof requestIdleCallback === "function"
+        ? requestIdleCallback(fn, { timeout: 1000 })
+        : fn();
+    scanIntervalId = setInterval(() => {
+      if (document.hidden) return; // 非表示タブでは何もしない
+      idle(runScan);
+    }, 2000);
   }
 
   // ---- SPA ナビゲーション ----

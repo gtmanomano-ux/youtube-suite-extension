@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Suite (キーワードフィルター / Shorts・ゲームルーム / 再生速度・回転・音量)",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "キーワード（部分一致・完全一致）やShorts・ゲームルームの非表示、再生速度の自動適用、動画の回転、音量ブーストをまとめた拡張機能です。ショートカットキーは自由に変更できます。",
   "permissions": ["storage"],
   "host_permissions": ["*://www.youtube.com/*", "*://m.youtube.com/*"],
