@@ -197,6 +197,22 @@
       <p class="desc" data-i18n="gameDesc"></p>
     </section>
 
+    <!-- ミックスリスト -->
+    <section class="card">
+      <div class="section-label" data-i18n="mixSection">ミックスリストブロック</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="fMix">ミックスリストを非表示</span>
+        <div class="toggle-right">
+          <span class="status-badge on" id="mixBadge">ON</span>
+          <label class="switch">
+            <input type="checkbox" id="mixToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <p class="desc" data-i18n="mixDesc"></p>
+    </section>
+
     <!-- 言語 -->
     <section class="card">
       <div class="section-label" data-i18n="langSection">言語 / Language</div>
@@ -285,6 +301,7 @@
       <ul class="bullets">
         <li data-i18n-html="hHide1"></li>
         <li data-i18n-html="hHide2"></li>
+        <li data-i18n-html="hHideMix"></li>
         <li data-i18n-html="hHide3"></li>
       </ul>
     </section>
@@ -305,7 +322,7 @@
     </section>
   </div>
 
-  <p class="footer">v3.4.1 — YouTube Suite</p>
+  <p class="footer">v3.5.0 — YouTube Suite</p>
 </div>
 
 <script src="i18n.js"></script>

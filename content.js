@@ -25,6 +25,8 @@
     enabled: true,
     // ゲームルーム / Playables ブロック
     gameEnabled: true,
+    // ミックスリスト (自動生成のミックス) ブロック
+    mixEnabled: true,
     // チャンネル名の左に出す「×」ボタン
     blockButton: true,
     // 再生速度
@@ -328,6 +330,109 @@ ytm-playables-shelf-renderer {
         (host.textContent || "").slice(0, 40);
       if (isGameLabel(label)) hideClosestGameContainer(host);
     });
+  }
+
+  // ==================================================================
+  // 1-c. ミックスリスト (自動生成のミックス) 非表示用スタイル
+  //
+  //  ミックスの再生リストIDは必ず "RD" で始まる (RDMM.., RDCLAK.. など)。
+  //  これを手がかりに、専用レンダラーと list=RD を指すカードを消す。
+  // ==================================================================
+  const MIX_CSS = `
+/* ミックス専用のレンダラー */
+ytd-compact-radio-renderer,
+ytd-radio-renderer,
+ytd-grid-radio-renderer,
+ytm-compact-radio-renderer,
+ytd-shelf-renderer:has(ytd-radio-renderer),
+ytd-rich-section-renderer:has(ytd-radio-renderer),
+ytd-item-section-renderer:has(> #contents > ytd-radio-renderer:only-child) {
+  display: none !important;
+}
+
+/* list=RD... を指すカード (ホーム・検索・関連動画・新UI) */
+ytd-rich-item-renderer:has(a[href*="list=RD"]),
+ytd-video-renderer:has(a[href*="list=RD"]),
+ytd-compact-video-renderer:has(a[href*="list=RD"]),
+ytd-grid-video-renderer:has(a[href*="list=RD"]),
+ytd-playlist-renderer:has(a[href*="list=RD"]),
+ytd-compact-playlist-renderer:has(a[href*="list=RD"]),
+yt-lockup-view-model:has(a[href*="list=RD"]),
+ytm-video-with-context-renderer:has(a[href*="list=RD"]) {
+  display: none !important;
+}
+
+/* 「ミックス」バッジを持つサムネイル */
+ytd-compact-video-renderer:has(ytd-thumbnail-overlay-bottom-panel-renderer[has-badge]),
+ytd-rich-item-renderer:has(a[href*="start_radio=1"]),
+ytd-video-renderer:has(a[href*="start_radio=1"]),
+yt-lockup-view-model:has(a[href*="start_radio=1"]) {
+  display: none !important;
+}
+`;
+
+  let mixStyleEl = null;
+
+  function ensureMixStyle() {
+    if (mixStyleEl && mixStyleEl.isConnected) return mixStyleEl;
+    mixStyleEl = document.createElement("style");
+    mixStyleEl.id = "yts-mix-style";
+    mixStyleEl.textContent = MIX_CSS;
+    (document.head || document.documentElement).appendChild(mixStyleEl);
+    return mixStyleEl;
+  }
+
+  /** ミックスを意図して開いているページかどうか */
+  const onMixPage = () => /[?&]list=RD/.test(location.search);
+
+  function syncMixStyle() {
+    // ミックスを再生中のページでは、再生リストを壊さないよう無効化する
+    ensureMixStyle().disabled = !S.mixEnabled || onMixPage();
+  }
+
+  ensureMixStyle();
+
+  const MIX_CARD_TAGS = new Set([
+    "ytd-rich-item-renderer",
+    "ytd-video-renderer",
+    "ytd-compact-video-renderer",
+    "ytd-grid-video-renderer",
+    "ytd-playlist-renderer",
+    "ytd-compact-playlist-renderer",
+    "ytd-compact-radio-renderer",
+    "ytd-radio-renderer",
+    "ytd-grid-radio-renderer",
+    "yt-lockup-view-model",
+    "ytm-video-with-context-renderer",
+    "ytm-compact-video-renderer",
+  ]);
+
+  function hideClosestMixCard(el) {
+    let node = el;
+    for (let i = 0; i < 8 && node && node !== document.body; i++) {
+      const tag = (node.tagName || "").toLowerCase();
+      if (MIX_CARD_TAGS.has(tag)) {
+        hideEl(node, "mix");
+        return;
+      }
+      node = node.parentElement;
+    }
+  }
+
+  function scanMix() {
+    if (!S.mixEnabled || onMixPage()) return;
+
+    // :has() が効かない箇所の保険。ミックスへのリンクを持つカードを消す。
+    document
+      .querySelectorAll('a[href*="list=RD"],a[href*="start_radio=1"]')
+      .forEach((a) => hideClosestMixCard(a));
+
+    // 専用レンダラーは無条件で消す
+    document
+      .querySelectorAll(
+        "ytd-compact-radio-renderer,ytd-radio-renderer,ytd-grid-radio-renderer,ytm-compact-radio-renderer"
+      )
+      .forEach((el) => hideEl(el, "mix"));
   }
 
   // ==================================================================
@@ -1155,6 +1260,9 @@ ytm-playables-shelf-renderer {
       scanGames();
     } catch (_) {}
     try {
+      scanMix();
+    } catch (_) {}
+    try {
       scanKeywords();
     } catch (_) {}
     try {
@@ -1213,6 +1321,7 @@ ytm-playables-shelf-renderer {
     resetRotation(); // 回転は動画ごとにリセットする
     syncShortsStyle();
     syncGameStyle();
+    syncMixStyle();
     burstApplySpeed();
     scheduleScan();
   }
@@ -1254,6 +1363,7 @@ ytm-playables-shelf-renderer {
     rebuildKeywords();
     syncShortsStyle();
     syncGameStyle();
+    syncMixStyle();
 
     const touched = (k) => !changedKeys || changedKeys.includes(k);
 
@@ -1265,6 +1375,9 @@ ytm-playables-shelf-renderer {
     }
     if (touched("gameEnabled") && !S.gameEnabled) {
       restoreHidden("game");
+    }
+    if (touched("mixEnabled") && !S.mixEnabled) {
+      restoreHidden("mix");
     }
     if (touched("blockButton") && !S.blockButton) {
       removeBlockButtons();
@@ -1300,6 +1413,7 @@ ytm-playables-shelf-renderer {
     rebuildKeywords();
     syncShortsStyle();
     syncGameStyle();
+    syncMixStyle();
     hookVideos();
     burstApplySpeed();
 

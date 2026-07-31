@@ -11,6 +11,7 @@ const YTS = (() => {
     ytFilterKeywords: [],
     enabled: true,
     gameEnabled: true,
+    mixEnabled: true,
     blockButton: true,
     speedEnabled: true,
     playbackSpeed: 1.0,

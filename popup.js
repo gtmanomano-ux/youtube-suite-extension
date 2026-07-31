@@ -27,6 +27,7 @@ const el = {
   blockButtonToggle: $("blockButtonToggle"),
   shortsToggle: $("shortsToggle"),
   gameToggle: $("gameToggle"),
+  mixToggle: $("mixToggle"),
   speedToggle: $("speedToggle"),
   rotationToggle: $("rotationToggle"),
   boostToggle: $("boostToggle"),
@@ -119,6 +120,7 @@ function renderToggles() {
   el.blockButtonToggle.checked = state.blockButton;
   el.shortsToggle.checked = state.enabled;
   el.gameToggle.checked = state.gameEnabled;
+  el.mixToggle.checked = state.mixEnabled;
   el.speedToggle.checked = state.speedEnabled;
   el.rotationToggle.checked = state.rotationEnabled;
 }
@@ -170,6 +172,7 @@ const TOGGLES = {
   blockButtonToggle: "blockButton",
   shortsToggle: "enabled",
   gameToggle: "gameEnabled",
+  mixToggle: "mixEnabled",
   speedToggle: "speedEnabled",
   rotationToggle: "rotationEnabled",
   boostToggle: "boostEnabled",

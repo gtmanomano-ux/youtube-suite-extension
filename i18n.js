@@ -38,6 +38,7 @@ const I18N = (() => {
       fBlockButton: "チャンネル名の「×」ボタン",
       fShorts: "Shortsを非表示",
       fGame: "ゲームルームを非表示",
+      fMix: "ミックスリストを非表示",
       fSpeed: "再生速度の自動適用",
       fRotation: "動画の回転",
       fBoost: "音量ブースト",
@@ -90,6 +91,9 @@ const I18N = (() => {
       shortsSection: "Shortsブロック",
       shortsDesc:
         "ナビゲーション・シェルフ・カード・タブなどShorts関連をすべて非表示にします（/shorts/ を直接開いた場合は再生できます）。",
+      mixSection: "ミックスリストブロック",
+      mixDesc:
+        "YouTubeが自動生成する「ミックス」（再生リストIDが RD で始まるもの）を非表示にします。ホーム・検索結果・関連動画のミックスカードが対象です。ミックスを再生中のページでは、再生リストを壊さないよう非表示を解除します。",
       gameSection: "ゲームルームブロック",
       gameDesc:
         "サイドバーの「ゲームルーム」、ホームや検索結果のゲームシェルフ・カード（Playables）を非表示にします。",
@@ -167,6 +171,8 @@ const I18N = (() => {
       hHideTitle: "非表示機能について",
       hHide1:
         "<b>Shorts</b>：サイドバー・タブ・シェルフ・カードなどShorts関連の表示を消します。/shorts/ のURLを直接開いた場合は再生できます。",
+      hHideMix:
+        "<b>ミックスリスト</b>：YouTubeが自動生成する「ミックス」を消します。判定は再生リストIDが <code>RD</code> で始まることを手がかりにしています。自分でミックスを開いた場合は、そのページでは非表示になりません。",
       hHide2:
         "<b>ゲームルーム</b>：サイドバーの「ゲームルーム」、ホーム・検索結果のゲームシェルフやカード（Playables）を消します。<code>/playables</code> を直接開いた場合はそのまま遊べます。表記が「Playables」「プレイアブル」でも判定します。",
       hHide3:
@@ -217,6 +223,7 @@ const I18N = (() => {
       fBlockButton: '"×" button on channel names',
       fShorts: "Hide Shorts",
       fGame: "Hide Playables",
+      fMix: "Hide Mix playlists",
       fSpeed: "Auto-apply playback speed",
       fRotation: "Video rotation",
       fBoost: "Volume boost",
@@ -269,6 +276,9 @@ const I18N = (() => {
       shortsSection: "Shorts blocking",
       shortsDesc:
         "Hides every Shorts-related element: navigation entries, shelves, cards and tabs. Opening a /shorts/ URL directly still plays normally.",
+      mixSection: "Mix playlist blocking",
+      mixDesc:
+        "Hides the Mix playlists YouTube generates automatically (their playlist ID starts with RD) on the home page, in search results and in related videos. While you are watching a Mix, the blocking is switched off so the playlist keeps working.",
       gameSection: "Playables blocking",
       gameDesc:
         'Hides the "Playables" entry in the sidebar and the game shelves and cards on the home page and search results.',
@@ -347,6 +357,8 @@ const I18N = (() => {
       hHideTitle: "About the hiding features",
       hHide1:
         "<b>Shorts</b>: removes Shorts-related sidebar entries, tabs, shelves and cards. Opening a /shorts/ URL directly still plays.",
+      hHideMix:
+        '<b>Mix playlists</b>: hides the Mixes YouTube generates automatically, detected by their playlist ID starting with <code>RD</code>. If you open a Mix yourself, it is left alone on that page.',
       hHide2:
         '<b>Playables</b>: removes the "Playables" sidebar entry and the game shelves and cards on the home page and search results. Opening <code>/playables</code> directly still works. Japanese labels (ゲームルーム / プレイアブル) are recognised as well.',
       hHide3:

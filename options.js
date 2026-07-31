@@ -33,6 +33,9 @@ const el = {
   gameToggle: $("gameToggle"),
   gameBadge: $("gameBadge"),
 
+  mixToggle: $("mixToggle"),
+  mixBadge: $("mixBadge"),
+
   rotationToggle: $("rotationToggle"),
   rotationBadge: $("rotationBadge"),
   rotationBody: $("rotationBody"),
@@ -165,6 +168,8 @@ function renderShorts() {
   YTS.updateBadge(el.shortsBadge, state.enabled);
   el.gameToggle.checked = state.gameEnabled;
   YTS.updateBadge(el.gameBadge, state.gameEnabled);
+  el.mixToggle.checked = state.mixEnabled;
+  YTS.updateBadge(el.mixBadge, state.mixEnabled);
 }
 
 function renderKeywords() {
@@ -334,6 +339,7 @@ el.boostToggle.addEventListener("change", () =>
 // ==================================================================
 el.shortsToggle.addEventListener("change", () => update({ enabled: el.shortsToggle.checked }));
 el.gameToggle.addEventListener("change", () => update({ gameEnabled: el.gameToggle.checked }));
+el.mixToggle.addEventListener("change", () => update({ mixEnabled: el.mixToggle.checked }));
 
 // ==================================================================
 // 回転 / ショートカット
