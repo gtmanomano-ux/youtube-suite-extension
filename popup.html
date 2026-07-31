@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>YouTube Suite</title>
+<link rel="stylesheet" href="ui.css" />
+<link rel="stylesheet" href="popup.css" />
+</head>
+<body class="popup">
+
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+    </div>
+    <div class="title-block">
+      <h1>YouTube Suite</h1>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" type="button" data-tab="filter" data-i18n="pTabFilter">フィルター</button>
+    <button class="tab" type="button" data-tab="func" data-i18n="pTabFunc">機能</button>
+  </nav>
+
+  <!-- ===== フィルター ===== -->
+  <div class="tab-panel" id="panel-filter">
+    <section class="card">
+      <div class="mini-row">
+        <span class="mini-label"><span data-i18n="pKeyword">キーワード</span><span class="count" id="keywordCount"></span></span>
+      </div>
+      <form class="input-row" id="keywordForm">
+        <input type="text" id="keywordInput" data-i18n-placeholder="pKwPlaceholder" autocomplete="off" />
+        <button type="submit" data-i18n="add">追加</button>
+      </form>
+      <div class="error-msg" id="keywordError"></div>
+      <div class="chip-list" id="keywordList" data-i18n-empty="pKwEmpty" data-empty="キーワードが登録されていません"></div>
+    </section>
+
+    <section class="card">
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fBoost">音量ブースト</span>
+        <label class="switch sm">
+          <input type="checkbox" id="boostToggle" /><span class="slider"></span>
+        </label>
+      </div>
+      <div class="speed-row" id="boostBody">
+        <button class="step-btn" id="boostDown" type="button">−</button>
+        <div class="speed-value"><span id="boostValue">2.0</span><span class="x">x</span></div>
+        <button class="step-btn" id="boostUp" type="button">＋</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== 機能 ===== -->
+  <div class="tab-panel" id="panel-func" hidden>
+    <section class="card">
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fKeyword">キーワードで非表示</span>
+        <label class="switch sm">
+          <input type="checkbox" id="keywordToggle" /><span class="slider"></span>
+        </label>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fBlockButton">チャンネル名の「×」ボタン</span>
+        <label class="switch sm">
+          <input type="checkbox" id="blockButtonToggle" /><span class="slider"></span>
+        </label>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fShorts">Shortsを非表示</span>
+        <label class="switch sm">
+          <input type="checkbox" id="shortsToggle" /><span class="slider"></span>
+        </label>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fGame">ゲームルームを非表示</span>
+        <label class="switch sm">
+          <input type="checkbox" id="gameToggle" /><span class="slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fSpeed">再生速度の自動適用</span>
+        <label class="switch sm">
+          <input type="checkbox" id="speedToggle" /><span class="slider"></span>
+        </label>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fRotation">動画の回転</span>
+        <label class="switch sm">
+          <input type="checkbox" id="rotationToggle" /><span class="slider"></span>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <div class="foot-btns">
+    <button class="wide-btn" id="openOptions" type="button" data-i18n="pOptions">詳細設定</button>
+    <button class="wide-btn" id="openHelp" type="button" data-i18n="pHelp">ヘルプ</button>
+  </div>
+
+<script src="i18n.js"></script>
+<script src="settings.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

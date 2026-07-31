@@ -1,0 +1,45 @@
+/* ポップアップ専用の調整（共通スタイルは ui.css） */
+
+body.popup {
+  width: 280px;
+  padding: 14px 12px 12px;
+}
+
+body.popup .header { margin-bottom: 10px; }
+body.popup .card { padding: 10px 12px; margin-bottom: 8px; }
+
+/* ---- タブ ---- */
+.tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.tab {
+  flex: 1; padding: 6px 0; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); font-size: 12px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: rgba(255,68,68,0.12); color: var(--accent); border-color: var(--accent); }
+
+/* ---- 行 ---- */
+.mini-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 3px 0;
+}
+.mini-row + .mini-row { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 8px; }
+.mini-label { font-size: 12px; font-weight: 700; }
+.count { font-size: 10px; color: var(--muted); font-weight: 400; margin-left: 5px; }
+.tiny { font-size: 10px; color: var(--muted); }
+
+body.popup .input-row { margin-top: 8px; }
+body.popup .chip-list { max-height: 168px; margin-top: 6px; }
+body.popup .speed-row { margin: 8px 0 2px; gap: 10px; }
+body.popup .speed-value { font-size: 22px; min-width: 68px; }
+
+/* ---- 下部ボタン ---- */
+.foot-btns { display: flex; gap: 6px; margin-top: 2px; }
+.wide-btn {
+  flex: 1; padding: 8px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); font-size: 12px; font-family: inherit;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.wide-btn:hover { background: var(--surface2); color: var(--text); }
