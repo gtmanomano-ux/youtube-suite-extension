@@ -1,3 +1,5 @@
+##個人用に作ったものを配布～！Opus5で作成しましたよん。
+
 # YouTube Suite
 
 A Chrome/Vivaldi extension that bundles keyword filtering, Shorts & Playables blocking, per-video playback speed, video rotation and volume boost into one place.
