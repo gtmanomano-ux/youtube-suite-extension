@@ -1,6 +1,6 @@
 /**
  * YouTube Suite - popup.js
- *  タブ1「フィルター」… キーワードの追加/削除・音量ブーストの倍率
+ *  タブ1「フィルター」… キーワード・音量ブースト・再生速度
  *  タブ2「機能」      … 各機能の ON/OFF だけ (数値は表示しない)
  *  下部               … 詳細設定 / ヘルプ (オプションページ)
  */
@@ -23,11 +23,17 @@ const el = {
   boostUp: $("boostUp"),
   boostDown: $("boostDown"),
 
+  speedBody: $("speedBody"),
+  speedValue: $("speedValue"),
+  speedUp: $("speedUp"),
+  speedDown: $("speedDown"),
+
   keywordToggle: $("keywordToggle"),
   blockButtonToggle: $("blockButtonToggle"),
   shortsToggle: $("shortsToggle"),
   gameToggle: $("gameToggle"),
   mixToggle: $("mixToggle"),
+  playerCardsToggle: $("playerCardsToggle"),
   speedToggle: $("speedToggle"),
   rotationToggle: $("rotationToggle"),
   boostToggle: $("boostToggle"),
@@ -115,13 +121,20 @@ function renderBoost() {
   el.boostBody.classList.toggle("disabled", !state.boostEnabled);
 }
 
+function renderSpeed() {
+  const speed = YTS.clampSpeed(state.playbackSpeed);
+  el.speedValue.textContent = YTS.format(speed);
+  el.speedToggle.checked = state.speedEnabled;
+  el.speedBody.classList.toggle("disabled", !state.speedEnabled);
+}
+
 function renderToggles() {
   el.keywordToggle.checked = state.keywordEnabled;
   el.blockButtonToggle.checked = state.blockButton;
   el.shortsToggle.checked = state.enabled;
   el.gameToggle.checked = state.gameEnabled;
   el.mixToggle.checked = state.mixEnabled;
-  el.speedToggle.checked = state.speedEnabled;
+  el.playerCardsToggle.checked = state.playerCardsEnabled;
   el.rotationToggle.checked = state.rotationEnabled;
 }
 
@@ -130,6 +143,7 @@ function render() {
   I18N.apply(document);
   renderKeywords();
   renderBoost();
+  renderSpeed();
   renderToggles();
 }
 
@@ -145,7 +159,11 @@ el.keywordForm.addEventListener("submit", (e) => {
     showError(I18N.t("errKwEmpty"));
     return;
   }
-  if (state.ytFilterKeywords.some((k) => k.trim().toLowerCase() === value.toLowerCase())) {
+  if (
+    state.ytFilterKeywords.some(
+      (k) => YTSShared.keywordIdentity(k) === YTSShared.keywordIdentity(value)
+    )
+  ) {
     showError(I18N.t("errKwDup"));
     return;
   }
@@ -164,6 +182,15 @@ function setBoost(v) {
 el.boostUp.addEventListener("click", () => setBoost(state.volumeBoost + YTS.BOOST.step));
 el.boostDown.addEventListener("click", () => setBoost(state.volumeBoost - YTS.BOOST.step));
 
+// 再生速度
+function setSpeed(v) {
+  const speed = YTS.clampSpeed(v);
+  if (speed === YTS.clampSpeed(state.playbackSpeed)) return;
+  update({ playbackSpeed: speed });
+}
+el.speedUp.addEventListener("click", () => setSpeed(state.playbackSpeed + YTS.SPEED.step));
+el.speedDown.addEventListener("click", () => setSpeed(state.playbackSpeed - YTS.SPEED.step));
+
 // ==================================================================
 // 機能トグル
 // ==================================================================
@@ -173,6 +200,7 @@ const TOGGLES = {
   shortsToggle: "enabled",
   gameToggle: "gameEnabled",
   mixToggle: "mixEnabled",
+  playerCardsToggle: "playerCardsEnabled",
   speedToggle: "speedEnabled",
   rotationToggle: "rotationEnabled",
   boostToggle: "boostEnabled",

@@ -36,6 +36,15 @@ const el = {
   mixToggle: $("mixToggle"),
   mixBadge: $("mixBadge"),
 
+  playerCardsToggle: $("playerCardsToggle"),
+  playerCardsBadge: $("playerCardsBadge"),
+
+  titleSpoofForm: $("titleSpoofForm"),
+  titleSpoofInput: $("titleSpoofInput"),
+  titleSpoofMetaForm: $("titleSpoofMetaForm"),
+  titleSpoofChannelInput: $("titleSpoofChannelInput"),
+  titleSpoofIconInput: $("titleSpoofIconInput"),
+
   rotationToggle: $("rotationToggle"),
   rotationBadge: $("rotationBadge"),
   rotationBody: $("rotationBody"),
@@ -170,6 +179,20 @@ function renderShorts() {
   YTS.updateBadge(el.gameBadge, state.gameEnabled);
   el.mixToggle.checked = state.mixEnabled;
   YTS.updateBadge(el.mixBadge, state.mixEnabled);
+  el.playerCardsToggle.checked = state.playerCardsEnabled;
+  YTS.updateBadge(el.playerCardsBadge, state.playerCardsEnabled);
+}
+
+function renderTitleSpoof() {
+  if (document.activeElement !== el.titleSpoofInput) {
+    el.titleSpoofInput.value = state.titleSpoofText;
+  }
+  if (document.activeElement !== el.titleSpoofChannelInput) {
+    el.titleSpoofChannelInput.value = state.titleSpoofChannelName;
+  }
+  if (document.activeElement !== el.titleSpoofIconInput) {
+    el.titleSpoofIconInput.value = state.titleSpoofIconUrl;
+  }
 }
 
 function renderKeywords() {
@@ -286,6 +309,7 @@ function render() {
   renderKeywords();
   renderRotation();
   renderKeybinds();
+  renderTitleSpoof();
 }
 
 // ==================================================================
@@ -340,6 +364,27 @@ el.boostToggle.addEventListener("change", () =>
 el.shortsToggle.addEventListener("change", () => update({ enabled: el.shortsToggle.checked }));
 el.gameToggle.addEventListener("change", () => update({ gameEnabled: el.gameToggle.checked }));
 el.mixToggle.addEventListener("change", () => update({ mixEnabled: el.mixToggle.checked }));
+el.playerCardsToggle.addEventListener("change", () =>
+  update({ playerCardsEnabled: el.playerCardsToggle.checked })
+);
+
+el.titleSpoofForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  update({
+    titleSpoofText: el.titleSpoofInput.value,
+    titleSpoofChannelName: el.titleSpoofChannelInput.value,
+    titleSpoofIconUrl: el.titleSpoofIconInput.value,
+  });
+});
+
+el.titleSpoofMetaForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  update({
+    titleSpoofText: el.titleSpoofInput.value,
+    titleSpoofChannelName: el.titleSpoofChannelInput.value,
+    titleSpoofIconUrl: el.titleSpoofIconInput.value,
+  });
+});
 
 // ==================================================================
 // 回転 / ショートカット
@@ -382,7 +427,11 @@ el.keywordForm.addEventListener("submit", (e) => {
     showError(el.keywordError, I18N.t("errKwEmpty"));
     return;
   }
-  if (state.ytFilterKeywords.some((k) => k.trim().toLowerCase() === value.toLowerCase())) {
+  if (
+    state.ytFilterKeywords.some(
+      (k) => YTSShared.keywordIdentity(k) === YTSShared.keywordIdentity(value)
+    )
+  ) {
     showError(el.keywordError, I18N.t("errKwDup"));
     return;
   }

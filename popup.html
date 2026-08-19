@@ -27,6 +27,9 @@
     <section class="card">
       <div class="mini-row">
         <span class="mini-label"><span data-i18n="pKeyword">キーワード</span><span class="count" id="keywordCount"></span></span>
+        <label class="switch sm">
+          <input type="checkbox" id="keywordToggle" /><span class="slider"></span>
+        </label>
       </div>
       <form class="input-row" id="keywordForm">
         <input type="text" id="keywordInput" data-i18n-placeholder="pKwPlaceholder" autocomplete="off" />
@@ -49,17 +52,25 @@
         <button class="step-btn" id="boostUp" type="button">＋</button>
       </div>
     </section>
+
+    <section class="card">
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fSpeed">再生速度の自動適用</span>
+        <label class="switch sm">
+          <input type="checkbox" id="speedToggle" /><span class="slider"></span>
+        </label>
+      </div>
+      <div class="speed-row" id="speedBody">
+        <button class="step-btn" id="speedDown" type="button">−</button>
+        <div class="speed-value"><span id="speedValue">1.0</span><span class="x">x</span></div>
+        <button class="step-btn" id="speedUp" type="button">＋</button>
+      </div>
+    </section>
   </div>
 
   <!-- ===== 機能 ===== -->
   <div class="tab-panel" id="panel-func" hidden>
     <section class="card">
-      <div class="mini-row">
-        <span class="mini-label" data-i18n="fKeyword">キーワードで非表示</span>
-        <label class="switch sm">
-          <input type="checkbox" id="keywordToggle" /><span class="slider"></span>
-        </label>
-      </div>
       <div class="mini-row">
         <span class="mini-label" data-i18n="fBlockButton">チャンネル名の「×」ボタン</span>
         <label class="switch sm">
@@ -84,15 +95,15 @@
           <input type="checkbox" id="mixToggle" /><span class="slider"></span>
         </label>
       </div>
+      <div class="mini-row">
+        <span class="mini-label" data-i18n="fPlayerCards">動画内カードを非表示</span>
+        <label class="switch sm">
+          <input type="checkbox" id="playerCardsToggle" /><span class="slider"></span>
+        </label>
+      </div>
     </section>
 
     <section class="card">
-      <div class="mini-row">
-        <span class="mini-label" data-i18n="fSpeed">再生速度の自動適用</span>
-        <label class="switch sm">
-          <input type="checkbox" id="speedToggle" /><span class="slider"></span>
-        </label>
-      </div>
       <div class="mini-row">
         <span class="mini-label" data-i18n="fRotation">動画の回転</span>
         <label class="switch sm">
@@ -108,6 +119,7 @@
   </div>
 
 <script src="i18n.js"></script>
+<script src="common.js"></script>
 <script src="settings.js"></script>
 <script src="popup.js"></script>
 </body>

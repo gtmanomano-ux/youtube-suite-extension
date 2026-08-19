@@ -39,6 +39,7 @@ const I18N = (() => {
       fShorts: "Shortsを非表示",
       fGame: "ゲームルームを非表示",
       fMix: "ミックスリストを非表示",
+      fPlayerCards: "動画内カードを非表示",
       fSpeed: "再生速度の自動適用",
       fRotation: "動画の回転",
       fBoost: "音量ブースト",
@@ -82,6 +83,7 @@ const I18N = (() => {
       actSpeedUp: "再生速度を上げる",
       actRotateLeft: "動画を左に回転",
       actRotateRight: "動画を右に回転",
+      actTitleSpoof: "タブとウィンドウ表示を偽装",
 
       boostSection: "音量ブースト",
       boostToggle: "YouTubeの最大音量を超えて増幅する",
@@ -97,6 +99,20 @@ const I18N = (() => {
       gameSection: "ゲームルームブロック",
       gameDesc:
         "サイドバーの「ゲームルーム」、ホームや検索結果のゲームシェルフ・カード（Playables）を非表示にします。",
+      playerCardsSection: "動画内カード",
+      playerCardsToggle: "動画内に表示されるカードをすべて非表示",
+      playerCardsDesc:
+        "動画プレーヤー内の終了後おすすめ・次の動画・プレイリスト・チャンネル・関連動画カードと、再生中に表示されるカードを対象にします。ホーム画面や通常の関連動画欄のカードには影響しません。",
+      titleSpoofSection: "タイトル表示の偽装",
+      titleSpoofPlaceholder: "例: 作業用BGMを再生中",
+      titleSpoofChannelPlaceholder: "偽装するチャンネル名（任意）",
+      titleSpoofIconPlaceholder: "偽装するアイコン画像のURL（任意）",
+      titleSpoofSave: "保存",
+      titleSpoofDesc:
+        "動画上で Shift+R を押すと偽装モードを切り替えます。偽装中は映像を黒くして音声だけを再生し、タイトル・チャンネル名・アイコンをここで指定した内容に置き換えます。開始時にはキーワードフィルターも自動的にONになります。",
+      titleSpoofEmpty: "偽装する文字列を先に保存してください。",
+      titleSpoofOn: "タイトル表示を偽装中",
+      titleSpoofOff: "元のタイトルに戻しました",
 
       langSection: "言語 / Language",
       langDesc:
@@ -107,7 +123,7 @@ const I18N = (() => {
 
       resetSection: "リセット",
       resetDesc:
-        "すべての設定（キーワード・再生速度・回転・ショートカット・音量ブースト・各ブロック）を初期状態に戻します。",
+        "すべての設定（キーワード・再生速度・回転・ショートカット・音量ブースト・タイトル表示偽装・各ブロック）を初期状態に戻します。",
       resetBtn: "すべての設定を初期化",
       resetConfirm: "すべての設定を初期状態に戻します。よろしいですか？",
       resetDone: "初期化しました",
@@ -139,6 +155,7 @@ const I18N = (() => {
       hKeySpeedDown: "再生速度を 0.1 下げる",
       hKeyRotRight: "動画を右に回転",
       hKeyRotLeft: "動画を左に回転",
+      hKeyTitleSpoof: "タブとウィンドウのタイトル表示を偽装",
       hKeyNote:
         "上記は初期設定で、「その他」タブの<b>ショートカットキー</b>から自由に変更できます。変更した速度・角度は画面上部に一瞬表示されます。速度はそのまま設定として保存されます。検索欄やコメント入力中は誤操作を防ぐため無効になります。",
       hKeyWarn:
@@ -224,6 +241,7 @@ const I18N = (() => {
       fShorts: "Hide Shorts",
       fGame: "Hide Playables",
       fMix: "Hide Mix playlists",
+      fPlayerCards: "Hide in-player cards",
       fSpeed: "Auto-apply playback speed",
       fRotation: "Video rotation",
       fBoost: "Volume boost",
@@ -267,6 +285,7 @@ const I18N = (() => {
       actSpeedUp: "Increase playback speed",
       actRotateLeft: "Rotate video left",
       actRotateRight: "Rotate video right",
+      actTitleSpoof: "Spoof tab and window title",
 
       boostSection: "Volume boost",
       boostToggle: "Amplify beyond YouTube's maximum volume",
@@ -282,6 +301,20 @@ const I18N = (() => {
       gameSection: "Playables blocking",
       gameDesc:
         'Hides the "Playables" entry in the sidebar and the game shelves and cards on the home page and search results.',
+      playerCardsSection: "In-player cards",
+      playerCardsToggle: "Hide all cards shown inside the video",
+      playerCardsDesc:
+        "Targets end-of-video recommendations, up-next, playlist and channel cards, related video cards, and cards shown during playback. Home and normal related-video list cards are not affected.",
+      titleSpoofSection: "Title display spoofing",
+      titleSpoofPlaceholder: "e.g. Playing background music",
+      titleSpoofChannelPlaceholder: "Spoof channel name (optional)",
+      titleSpoofIconPlaceholder: "Spoof icon image URL (optional)",
+      titleSpoofSave: "Save",
+      titleSpoofDesc:
+        "Press Shift+R on the video to toggle spoof mode. While active, the picture is black while audio continues, and the title, channel name and icon are replaced with the values entered here. The keyword filter is also turned ON automatically when the mode starts.",
+      titleSpoofEmpty: "Save a spoof title first.",
+      titleSpoofOn: "Title display spoofing is ON",
+      titleSpoofOff: "Restored the original title",
 
       langSection: "Language / 言語",
       langDesc:
@@ -292,7 +325,7 @@ const I18N = (() => {
 
       resetSection: "Reset",
       resetDesc:
-        "Restore every setting (keywords, playback speed, rotation, shortcuts, volume boost and all blocking options) to its default.",
+        "Restore every setting (keywords, playback speed, rotation, shortcuts, volume boost, title spoofing and all blocking options) to its default.",
       resetBtn: "Reset all settings",
       resetConfirm: "Restore all settings to their defaults. Are you sure?",
       resetDone: "Settings were reset",
@@ -324,6 +357,7 @@ const I18N = (() => {
       hKeySpeedDown: "Decrease playback speed by 0.1",
       hKeyRotRight: "Rotate the video right",
       hKeyRotLeft: "Rotate the video left",
+      hKeyTitleSpoof: "Spoof the tab and window title",
       hKeyNote:
         'These are the defaults; change them freely under <b>Keyboard shortcuts</b> on the "Other" tab. The new speed or angle flashes briefly at the top of the screen, and the speed is saved as your setting. Shortcuts are disabled while typing in the search box or a comment field.',
       hKeyWarn:
