@@ -6,79 +6,33 @@
 "use strict";
 
 const YTS = (() => {
-  const DEFAULTS = {
-    keywordEnabled: true,
-    ytFilterKeywords: [],
-    enabled: true,
-    gameEnabled: true,
-    mixEnabled: true,
-    blockButton: true,
-    speedEnabled: true,
-    playbackSpeed: 1.0,
-    boostEnabled: false,
-    volumeBoost: 2.0,
-    language: "auto",
-    rotationEnabled: true,
-    rotationStep: 90,
-    keybinds: {
-      speedDown: { code: "KeyQ", ctrl: false, shift: true, alt: false },
-      speedUp: { code: "KeyE", ctrl: false, shift: true, alt: false },
-      rotateLeft: { code: "KeyA", ctrl: false, shift: true, alt: false },
-      rotateRight: { code: "KeyD", ctrl: false, shift: true, alt: false },
-    },
-  };
-
-  const ROTATION_STEPS = [1, 45, 90, 180];
+  const DEFAULTS = YTSShared.DEFAULTS;
+  const ROTATION_STEPS = YTSShared.ROTATION_STEPS;
 
   const ACTION_KEYS = {
     speedDown: "actSpeedDown",
     speedUp: "actSpeedUp",
     rotateLeft: "actRotateLeft",
     rotateRight: "actRotateRight",
+    titleSpoof: "actTitleSpoof",
   };
   const actionLabel = (action) => I18N.t(ACTION_KEYS[action]);
 
-  const SPEED = { min: 0.1, max: 5.0, step: 0.1 };
-  const BOOST = { min: 1.0, max: 5.0, step: 0.1 };
-
-  const round2 = (n) => Math.round(n * 100) / 100;
-
-  function clamp(n, range, fallback) {
-    const v = Number(n);
-    if (!Number.isFinite(v)) return fallback;
-    return Math.min(range.max, Math.max(range.min, round2(v)));
-  }
-
-  const clampSpeed = (n) => clamp(n, SPEED, 1.0);
-  const clampBoost = (n) => clamp(n, BOOST, 1.0);
+  const SPEED = YTSShared.SPEED;
+  const BOOST = YTSShared.BOOST;
+  const clampSpeed = YTSShared.clampSpeed;
+  const clampBoost = YTSShared.clampBoost;
 
   /** 1.0 / 1.25 のように、小数第2位があるときだけ2桁で表示する */
   const format = (n) => (Math.round(n * 100) % 10 === 0 ? n.toFixed(1) : n.toFixed(2));
 
   function sanitize(obj) {
-    const s = Object.assign({}, DEFAULTS, obj);
-    s.playbackSpeed = clampSpeed(s.playbackSpeed);
-    s.volumeBoost = clampBoost(s.volumeBoost);
-    if (!Array.isArray(s.ytFilterKeywords)) s.ytFilterKeywords = DEFAULTS.ytFilterKeywords.slice();
-    if (!ROTATION_STEPS.includes(Number(s.rotationStep))) s.rotationStep = DEFAULTS.rotationStep;
-    s.rotationStep = Number(s.rotationStep);
-    if (["auto", "ja", "en"].indexOf(s.language) < 0) s.language = DEFAULTS.language;
-    s.keybinds = sanitizeKeybinds(s.keybinds);
-    return s;
+    return YTSShared.sanitizeSettings(obj);
   }
 
   /** 壊れた/欠けたキー設定を既定値で補う */
   function sanitizeKeybinds(raw) {
-    const src = raw && typeof raw === "object" ? raw : {};
-    const out = {};
-    Object.keys(DEFAULTS.keybinds).forEach((action) => {
-      const b = src[action];
-      out[action] =
-        b && typeof b === "object" && typeof b.code === "string" && b.code
-          ? { code: b.code, ctrl: !!b.ctrl, shift: !!b.shift, alt: !!b.alt }
-          : Object.assign({}, DEFAULTS.keybinds[action]);
-    });
-    return out;
+    return YTSShared.sanitizeKeybinds(raw);
   }
 
   // ---- キーバインド表示 / 取得 -----------------------------------------
@@ -162,12 +116,14 @@ const YTS = (() => {
 
     const migrated = old
       .filter((ch) => typeof ch === "string" && ch.startsWith("name:"))
-      .map((ch) => `"${ch.slice(5).trim()}"`)
-      .filter((kw) => kw !== '""');
+      .map((ch) => YTSShared.makeExactKeyword(ch.slice(5)))
+      .filter(Boolean);
 
-    const keywords = settings.ytFilterKeywords.slice();
+    const keywords = YTSShared.sanitizeKeywordList(settings.ytFilterKeywords);
     migrated.forEach((kw) => {
-      if (!keywords.some((k) => k.trim().toLowerCase() === kw.toLowerCase())) keywords.push(kw);
+      if (!keywords.some((k) => YTSShared.keywordIdentity(k) === YTSShared.keywordIdentity(kw))) {
+        keywords.push(kw);
+      }
     });
 
     settings.ytFilterKeywords = keywords;
@@ -185,7 +141,23 @@ const YTS = (() => {
         Object.assign({ blockedChannels: [] }, DEFAULTS),
         (res) => {
           const raw = chrome.runtime.lastError ? null : res;
-          migrate(raw, sanitize(raw)).then(resolve);
+          const titleSpoofPatch = YTSShared.migrateTitleSpoofSettings(raw);
+          const settings = sanitize(Object.assign({}, raw || {}, titleSpoofPatch));
+          const rawKeywords = raw && Array.isArray(raw.ytFilterKeywords) ? raw.ytFilterKeywords : [];
+          migrate(raw, settings).then((migrated) => {
+            const changed =
+              rawKeywords.length !== migrated.ytFilterKeywords.length ||
+              rawKeywords.some((kw, index) => kw !== migrated.ytFilterKeywords[index]);
+            const patch = Object.assign({}, titleSpoofPatch);
+            if (changed && !(raw && Array.isArray(raw.blockedChannels) && raw.blockedChannels.length)) {
+              patch.ytFilterKeywords = migrated.ytFilterKeywords;
+            }
+            if (Object.keys(patch).length) {
+              chrome.storage.sync.set(patch, () => resolve(migrated));
+              return;
+            }
+            resolve(migrated);
+          });
         }
       )
     );
@@ -219,10 +191,9 @@ const YTS = (() => {
    *   @handle / handle / youtube.com/@handle / channel/UCxxxx / UCxxxx / c/ / user/
    */
   // ---- キーワード -------------------------------------------------------
-  const EXACT_RE = /^"(.*)"$/;
-
   /** "…" で囲まれていれば完全一致キーワード */
-  const isExactKeyword = (kw) => typeof kw === "string" && EXACT_RE.test(kw.trim());
+  const isExactKeyword = (kw) =>
+    typeof kw === "string" && /^"[\s\S]*"$/.test(kw.trim());
 
   /**
    * 入力を正規化する。
@@ -231,19 +202,13 @@ const YTS = (() => {
    *   「ぽこぴー」→ "ぽこぴー"      (全角の括弧も完全一致として受け付ける)
    */
   function normalizeKeywordInput(raw) {
-    const text = (raw || "").trim();
-    if (!text) return null;
-
-    const quoted = text.match(/^[「『“”"'](.*)[」』“”"']$/);
-    if (quoted) {
-      const body = quoted[1].trim().replace(/"/g, "");
-      return body ? `"${body}"` : null;
-    }
-    return text;
+    return YTSShared.canonicalizeKeyword(raw);
   }
 
-  const keywordLabel = (kw) =>
-    isExactKeyword(kw) ? EXACT_RE.exec(kw.trim())[1] : kw;
+  const keywordLabel = (kw) => {
+    const canonical = YTSShared.canonicalizeKeyword(kw);
+    return isExactKeyword(canonical) ? canonical.slice(1, -1) : canonical || "";
+  };
 
   const keywordKind = (kw) => I18N.t(isExactKeyword(kw) ? "kindExact" : "kindPartial");
 

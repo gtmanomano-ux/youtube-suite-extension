@@ -34,6 +34,9 @@ Rotate the video left/right with a shortcut, by **1° / 45° / 90° / 180°** pe
 #### Volume boost
 Amplifies the tab's audio up to **5×** using the Web Audio API, with a limiter to suppress clipping. While OFF the audio path is left completely untouched, so quality and volume stay exactly as normal.
 
+#### Title spoofing
+Enter a replacement title, channel name and optional icon URL on the options page. Press **Shift+R** while watching to hide the picture with a black layer while leaving audio audible, and replace the tab/window metadata. Starting spoof mode also enables the keyword filter.
+
 #### Keyboard shortcuts
 
 | Default | Action |
@@ -42,8 +45,9 @@ Amplifies the tab's audio up to **5×** using the Web Audio API, with a limiter 
 | <kbd>Shift</kbd>+<kbd>E</kbd> | Increase playback speed by 0.1 |
 | <kbd>Shift</kbd>+<kbd>A</kbd> | Rotate video left |
 | <kbd>Shift</kbd>+<kbd>D</kbd> | Rotate video right |
+| <kbd>Shift</kbd>+<kbd>R</kbd> | Toggle title spoofing |
 
-All four are freely reassignable from the options page (press "Edit", then the key combination). Duplicate assignments are rejected, and shortcuts are disabled while typing in the search box or a comment field.
+All five are freely reassignable from the options page (press "Edit", then the key combination). Duplicate assignments are rejected, and shortcuts are disabled while typing in the search box or a comment field.
 
 #### Language
 The UI follows your browser language automatically (Japanese for `ja`, English otherwise) and can be fixed to either language from the options page.
@@ -71,6 +75,7 @@ No background service worker, no network requests, no analytics. Nothing about y
 |---|---|
 | `content.js` | Everything that runs on YouTube: filtering, blocking, speed, rotation, volume boost, shortcuts. |
 | `content.css` | Hidden-card rule, the `×` button and the on-screen toast. |
+| `common.js` | Shared defaults, validation and keyword normalization. |
 | `i18n.js` | Japanese/English dictionary and the translation helper. |
 | `settings.js` | Shared settings access, validation and keybind helpers for the popup and options page. |
 | `popup.html` / `popup.js` / `popup.css` | Toolbar popup (Filter / Features tabs). |
@@ -92,7 +97,7 @@ No background service worker, no network requests, no analytics. Nothing about y
 
 ## 日本語
 
-キーワードフィルター、Shorts・ゲームルームの非表示、再生速度の自動適用、動画の回転、音量ブーストを1つにまとめた Chrome / Vivaldi 用の拡張機能です。
+キーワードフィルター、Shorts・ゲームルームの非表示、再生速度の自動適用、動画の回転、音量ブースト、タイトル表示の偽装を1つにまとめた Chrome / Vivaldi 用の拡張機能です。
 
 ### 機能
 
@@ -155,6 +160,7 @@ Web Audio API を使い、そのタブの音声を最大 **5倍** まで増幅�
 |---|---|
 | `content.js` | YouTube上で動作する処理全般（フィルター・ブロック・速度・回転・音量ブースト・ショートカット）。 |
 | `content.css` | 非表示用のルール、「×」ボタン、画面上のトースト表示。 |
+| `common.js` | 共通設定値・検証・キーワード正規化。 |
 | `i18n.js` | 日本語／英語の辞書と適用処理。 |
 | `settings.js` | ポップアップとオプションで共有する設定アクセス・検証・キーバインド処理。 |
 | `popup.html` / `popup.js` / `popup.css` | ツールバーのポップアップ（フィルター／機能タブ）。 |

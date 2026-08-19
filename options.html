@@ -213,6 +213,39 @@
       <p class="desc" data-i18n="mixDesc"></p>
     </section>
 
+    <!-- プレーヤー内カード -->
+    <section class="card">
+      <div class="section-label" data-i18n="playerCardsSection">動画内カード</div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="playerCardsToggle">動画内に表示されるカードをすべて非表示</span>
+        <div class="toggle-right">
+          <span class="status-badge off" id="playerCardsBadge">OFF</span>
+          <label class="switch">
+            <input type="checkbox" id="playerCardsToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <p class="desc" data-i18n="playerCardsDesc"></p>
+    </section>
+
+    <section class="card">
+      <div class="section-label" data-i18n="titleSpoofSection">タイトル表示の偽装</div>
+      <form class="input-row" id="titleSpoofForm">
+        <input type="text" id="titleSpoofInput" data-i18n-placeholder="titleSpoofPlaceholder" maxlength="200" autocomplete="off" />
+      </form>
+      <form id="titleSpoofMetaForm">
+        <div class="input-row">
+          <input type="text" id="titleSpoofChannelInput" data-i18n-placeholder="titleSpoofChannelPlaceholder" maxlength="100" autocomplete="off" />
+        </div>
+        <div class="input-row">
+          <input type="text" id="titleSpoofIconInput" data-i18n-placeholder="titleSpoofIconPlaceholder" maxlength="4000" autocomplete="off" />
+          <button type="submit" data-i18n="titleSpoofSave">保存</button>
+        </div>
+      </form>
+      <p class="desc" data-i18n="titleSpoofDesc"></p>
+    </section>
+
     <!-- 言語 -->
     <section class="card">
       <div class="section-label" data-i18n="langSection">言語 / Language</div>
@@ -265,6 +298,7 @@
         <tr><td><kbd>Shift</kbd>+<kbd>Q</kbd></td><td data-i18n="hKeySpeedDown"></td></tr>
         <tr><td><kbd>Shift</kbd>+<kbd>D</kbd></td><td data-i18n="hKeyRotRight"></td></tr>
         <tr><td><kbd>Shift</kbd>+<kbd>A</kbd></td><td data-i18n="hKeyRotLeft"></td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>R</kbd></td><td data-i18n="hKeyTitleSpoof"></td></tr>
       </table>
       <p class="desc" data-i18n-html="hKeyNote"></p>
       <p class="desc" data-i18n-html="hKeyWarn"></p>
@@ -326,6 +360,7 @@
 </div>
 
 <script src="i18n.js"></script>
+<script src="common.js"></script>
 <script src="settings.js"></script>
 <script src="options.js"></script>
 </body>

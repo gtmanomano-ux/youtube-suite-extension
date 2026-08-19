@@ -17,39 +17,8 @@
   // ==================================================================
   // 設定 (chrome.storage.sync)
   // ==================================================================
-  const DEFAULTS = {
-    // キーワードフィルター
-    keywordEnabled: true,
-    ytFilterKeywords: [],
-    // Shorts ブロック (キー名は旧拡張との互換のため "enabled")
-    enabled: true,
-    // ゲームルーム / Playables ブロック
-    gameEnabled: true,
-    // ミックスリスト (自動生成のミックス) ブロック
-    mixEnabled: true,
-    // チャンネル名の左に出す「×」ボタン
-    blockButton: true,
-    // 再生速度
-    speedEnabled: true,
-    playbackSpeed: 1.0,
-    // 音量ブースト (使いたいときだけ ON にする想定のため既定は OFF)
-    boostEnabled: false,
-    volumeBoost: 2.0,
-    // 表示言語 ("auto" | "ja" | "en")
-    language: "auto",
-    // 動画の回転
-    rotationEnabled: true,
-    rotationStep: 90,
-    // ショートカットキー (すべて変更可能)
-    keybinds: {
-      speedDown: { code: "KeyQ", ctrl: false, shift: true, alt: false },
-      speedUp: { code: "KeyE", ctrl: false, shift: true, alt: false },
-      rotateLeft: { code: "KeyA", ctrl: false, shift: true, alt: false },
-      rotateRight: { code: "KeyD", ctrl: false, shift: true, alt: false },
-    },
-  };
-
-  const ROTATION_STEPS = [1, 45, 90, 180];
+  const DEFAULTS = YTSShared.DEFAULTS;
+  const ROTATION_STEPS = YTSShared.ROTATION_STEPS;
 
   const S = Object.assign({}, DEFAULTS);
   let settingsLoaded = false;
@@ -102,26 +71,19 @@
     }
   }
 
-  const MIN_SPEED = 0.1;
-  const MAX_SPEED = 5.0;
+  const MIN_SPEED = YTSShared.SPEED.min;
+  const MAX_SPEED = YTSShared.SPEED.max;
+  const DEFAULT_PLAYBACK_RATE = 1.0;
   const STEP = 0.1;
 
   const round2 = (n) => Math.round(n * 100) / 100;
-  const clampSpeed = (n) => {
-    const v = Number(n);
-    if (!Number.isFinite(v)) return 1.0;
-    return Math.min(MAX_SPEED, Math.max(MIN_SPEED, round2(v)));
-  };
+  const clampSpeed = YTSShared.clampSpeed;
   const formatSpeed = (n) =>
     Math.round(n * 100) % 10 === 0 ? n.toFixed(1) : n.toFixed(2);
 
-  const MIN_BOOST = 1.0;
-  const MAX_BOOST = 5.0;
-  const clampBoost = (n) => {
-    const v = Number(n);
-    if (!Number.isFinite(v)) return 1.0;
-    return Math.min(MAX_BOOST, Math.max(MIN_BOOST, round2(v)));
-  };
+  const MIN_BOOST = YTSShared.BOOST.min;
+  const MAX_BOOST = YTSShared.BOOST.max;
+  const clampBoost = YTSShared.clampBoost;
 
   // ==================================================================
   // 1. Shorts 非表示用スタイル (設定で ON/OFF できるよう動的に注入)
@@ -322,7 +284,7 @@ ytm-playables-shelf-renderer {
         "ytd-reel-shelf-renderer #title"
     );
     labelHosts.forEach((host) => {
-      if (host.hasAttribute("data-yts-hidden")) return;
+      if (host.classList.contains("yts-hidden-game")) return;
       const label =
         host.getAttribute("tab-title") ||
         host.getAttribute("title") ||
@@ -392,6 +354,58 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
 
   ensureMixStyle();
 
+  const PLAYER_CARDS_CSS = `
+.html5-video-player.yts-player-cards-hidden .ytp-endscreen-content,
+.html5-video-player.yts-player-cards-hidden .ytp-autonav-endscreen-upnext-container,
+.html5-video-player.yts-player-cards-hidden .ytp-suggestion-set,
+.html5-video-player.yts-player-cards-hidden .ytp-modern-videowall-still,
+.html5-video-player.yts-player-cards-hidden .ytp-ce-element,
+.html5-video-player.yts-player-cards-hidden .ytp-ce-video,
+.html5-video-player.yts-player-cards-hidden .ytp-ce-playlist,
+.html5-video-player.yts-player-cards-hidden .ytp-ce-channel,
+.html5-video-player.yts-player-cards-hidden .ytp-videowall-still,
+.html5-video-player.yts-player-cards-hidden .ytp-cards-teaser,
+.html5-video-player.yts-player-cards-hidden .ytp-cards-button,
+.html5-video-player.yts-player-cards-hidden .ytp-card,
+.html5-video-player.yts-player-cards-hidden #iv-drawer,
+#movie_player.yts-player-cards-hidden .ytp-endscreen-content,
+#movie_player.yts-player-cards-hidden .ytp-autonav-endscreen-upnext-container,
+#movie_player.yts-player-cards-hidden .ytp-suggestion-set,
+#movie_player.yts-player-cards-hidden .ytp-modern-videowall-still,
+#movie_player.yts-player-cards-hidden .ytp-ce-element,
+#movie_player.yts-player-cards-hidden .ytp-ce-video,
+#movie_player.yts-player-cards-hidden .ytp-ce-playlist,
+#movie_player.yts-player-cards-hidden .ytp-ce-channel,
+#movie_player.yts-player-cards-hidden .ytp-videowall-still,
+#movie_player.yts-player-cards-hidden .ytp-cards-teaser,
+#movie_player.yts-player-cards-hidden .ytp-cards-button,
+#movie_player.yts-player-cards-hidden .ytp-card,
+#movie_player.yts-player-cards-hidden #iv-drawer {
+  display: none !important;
+}
+`;
+
+  let playerCardsStyleEl = null;
+
+  function ensurePlayerCardsStyle() {
+    if (playerCardsStyleEl && playerCardsStyleEl.isConnected) return playerCardsStyleEl;
+    playerCardsStyleEl = document.createElement("style");
+    playerCardsStyleEl.id = "yts-player-cards-style";
+    playerCardsStyleEl.textContent = PLAYER_CARDS_CSS;
+    (document.head || document.documentElement).appendChild(playerCardsStyleEl);
+    return playerCardsStyleEl;
+  }
+
+  function syncPlayerCardsStyle() {
+    ensurePlayerCardsStyle().disabled = false;
+    const hidden = !!S.playerCardsEnabled;
+    document.querySelectorAll(".html5-video-player,#movie_player").forEach((player) => {
+      player.classList.toggle("yts-player-cards-hidden", hidden);
+    });
+  }
+
+  ensurePlayerCardsStyle();
+
   const MIX_CARD_TAGS = new Set([
     "ytd-rich-item-renderer",
     "ytd-video-renderer",
@@ -454,13 +468,10 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     "ytd-grid-movie-renderer",
     "ytd-grid-playlist-renderer",
     "ytd-grid-radio-renderer",
-    "ytd-reel-item-renderer",
-    "ytd-shorts-lockup-view-model",
-    "ytm-shorts-lockup-view-model-v2",
+    "ytd-channel-renderer",
+    "ytd-grid-channel-renderer",
     "yt-lockup-view-model",
     "ytd-compact-autoplay-renderer",
-    ".ytp-endscreen-content .ytp-ce-video",
-    ".ytp-suggestion-set .ytp-videowall-still",
     "ytm-video-with-context-renderer",
     "ytm-compact-video-renderer",
     "ytm-rich-item-renderer",
@@ -474,44 +485,41 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     "#channel-name",
     "ytd-channel-name",
     ".ytd-channel-name",
+    "yt-content-metadata-view-model",
+    ".yt-content-metadata-view-model__metadata-row",
+    ".yt-content-metadata-view-model__metadata-row span",
+    "yt-content-metadata-view-model span",
+    ".yt-lockup-metadata-view-model__title",
+    ".yt-lockup-metadata-view-model__heading-reset",
+    ".yt-lockup-metadata-view-model__metadata-row",
+    ".yt-lockup-metadata-view-model__metadata-row span",
     "#text",
     "#description-text",
     "yt-formatted-string",
     ".ytp-ce-video-title",
+    ".ytp-ce-channel-title",
     ".ytp-videowall-still-info-title",
+    ".ytp-videowall-still-info-author",
+    ".ytp-videowall-still-info",
+    ".ytp-autonav-endscreen-upnext-title",
     "span.title",
     "h3",
     "a",
   ];
 
-  const BRACKET_AND_SYMBOL_RE =
-    /[「」『』【】\[\]()（）<>《》〈〉{}｛｝"'"'“”'’、。,.!！?？~〜\-_・|｜*＊#＃]/g;
-
-  function toHalfWidth(str) {
-    return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (ch) =>
-      String.fromCharCode(ch.charCodeAt(0) - 0xfee0)
-    );
-  }
-
-  function normalize(str) {
-    if (!str) return "";
-    return toHalfWidth(str).toUpperCase().replace(BRACKET_AND_SYMBOL_RE, "").trim();
-  }
-
-  /**
-   * キーワードは2種類。
-   *   ASMR          … 部分一致 (記号・全角半角・大小文字を無視)
-   *   "チャンネル名" … 完全一致 (タイトルやチャンネル名など、どれか1項目と丸ごと一致)
-   */
-  const EXACT_RE = /^"(.*)"$/;
-  const isExactKeyword = (kw) => typeof kw === "string" && EXACT_RE.test(kw.trim());
-  const exactBody = (kw) => kw.trim().replace(EXACT_RE, "$1");
+  const normalize = YTSShared.normalizeMatchText;
+  const isExactKeyword = (kw) =>
+    typeof kw === "string" && /^"[\s\S]*"$/.test(kw.trim());
+  const exactBody = (kw) => (isExactKeyword(kw) ? kw.trim().slice(1, -1) : kw);
+  const cleanKeywordList = YTSShared.sanitizeKeywordList;
 
   let partialKeywords = []; // 正規化済み
   let exactKeywords = []; // 正規化済み
+  let keywordRevision = 0;
 
   function rebuildKeywords() {
-    const list = Array.isArray(S.ytFilterKeywords) ? S.ytFilterKeywords : [];
+    const list = cleanKeywordList(S.ytFilterKeywords);
+    S.ytFilterKeywords = list;
     partialKeywords = [];
     exactKeywords = [];
     list.forEach((kw) => {
@@ -521,17 +529,25 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       if (!value) return;
       (exact ? exactKeywords : partialKeywords).push(value);
     });
+    keywordRevision++;
   }
 
   const hasKeywords = () => partialKeywords.length > 0 || exactKeywords.length > 0;
 
-  // 14個のセレクタを1本にまとめる (querySelectorAll の呼び出しを 14回 → 1回に)
   const TEXT_SELECTOR = TEXT_SELECTORS.join(",");
 
-  /**
-   * 完全一致の判定に使う「項目単位」のテキストを集める。
-   * 完全一致キーワードが登録されているときだけ呼ぶ。
-   */
+  function textWithoutBlockButtons(node) {
+    if (!node) return "";
+    if (node.nodeType === 3) return node.nodeValue || "";
+    if (node.nodeType !== 1 && node.nodeType !== 9) return "";
+    if (node.nodeType === 1 && node.classList.contains("yts-block-btn")) return "";
+    let text = "";
+    node.childNodes.forEach((child) => {
+      text += textWithoutBlockButtons(child);
+    });
+    return text;
+  }
+
   function collectCardItems(card) {
     const items = [];
     const push = (t) => {
@@ -540,28 +556,26 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       if (s && s.length <= 300) items.push(s);
     };
 
-    card.querySelectorAll("[title],[aria-label]").forEach((el) => {
-      // 自前で挿入した「×」ボタンの説明文は判定に混ぜない
+    card.querySelectorAll("[title],[aria-label],[data-title],[data-author]").forEach((el) => {
       if (el.classList && el.classList.contains("yts-block-btn")) return;
       push(el.getAttribute("title"));
       push(el.getAttribute("aria-label"));
+      push(el.getAttribute("data-title"));
+      push(el.getAttribute("data-author"));
     });
 
-    card.querySelectorAll(TEXT_SELECTOR).forEach((el) => push(el.textContent));
+    card.querySelectorAll(TEXT_SELECTOR).forEach((el) => push(textWithoutBlockButtons(el)));
 
     if (card.getAttribute) {
       push(card.getAttribute("title"));
       push(card.getAttribute("aria-label"));
+      push(card.getAttribute("data-title"));
+      push(card.getAttribute("data-author"));
     }
     return items;
   }
 
-  /**
-   * @param {Element} card
-   * @param {string} all カード内の全テキスト (呼び出し側で取得済みのものを使い回す)
-   */
-  function matchesKeyword(card, all) {
-    // 完全一致：いずれかの項目と丸ごと一致するか
+  function matchesKeyword(card, data) {
     if (exactKeywords.length) {
       for (const item of collectCardItems(card)) {
         const n = normalize(item);
@@ -569,11 +583,8 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       }
     }
 
-    // 部分一致：カード内のどこかに含まれていればよい。
-    // textContent はタイトル・チャンネル名・説明をすべて含むため、
-    // セレクタに依存せず1回の読み取りで判定できる。
     if (partialKeywords.length) {
-      const haystack = normalize(all);
+      const haystack = normalize(data.all);
       if (haystack) {
         for (const kw of partialKeywords) {
           if (haystack.includes(kw)) return true;
@@ -583,35 +594,143 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     return false;
   }
 
-  // カードごとの判定結果を覚えておき、内容が変わらない限り再判定しない。
-  // (YouTube は仮想スクロールで要素を使い回すため、テキストを鍵にして判定する)
-  const keywordCache = new WeakMap();
-  const textKey = (s) => s.length + "|" + s.slice(0, 80);
+  let keywordCache = new WeakMap();
+
+  function getCardSearchData(card) {
+    const attributeText = [
+      card,
+      ...Array.from(card.querySelectorAll("[title],[aria-label],[data-title],[data-author]")).filter(
+        (el) => !el.classList.contains("yts-block-btn")
+      ),
+    ]
+      .flatMap((el) => [
+        el.getAttribute("title"),
+        el.getAttribute("aria-label"),
+        el.getAttribute("data-title"),
+        el.getAttribute("data-author"),
+      ])
+      .filter(Boolean)
+      .join(" ");
+    const all = [textWithoutBlockButtons(card), attributeText]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const watchLink = card.querySelector('a[href*="/watch"],a[href*="/shorts/"]');
+    const href = watchLink ? watchLink.getAttribute("href") || "" : "";
+    const videoMatch = href.match(/[?&]v=([^&#]+)/);
+    const identity = videoMatch ? `video:${videoMatch[1]}` : `text:${all}`;
+    return { all, identity, signature: `${identity}|${all}` };
+  }
+
+  function isVideoCard(element) {
+    return !!(element && element.nodeType === 1 && element.matches(CARD_SELECTOR));
+  }
+
+  const ENDSCREEN_ROOT_SELECTOR =
+    ".ytp-endscreen-content,.ytp-autonav-endscreen-upnext-container,.ytp-suggestion-set";
+  const ENDSCREEN_CARD_SELECTOR =
+    ".ytp-ce-element,.ytp-ce-video,.ytp-ce-playlist,.ytp-ce-channel,.ytp-videowall-still,.ytp-modern-videowall-still,.ytp-suggestion-set";
+  const ENDSCREEN_TITLE_SELECTOR =
+    ".ytp-ce-video-title,.ytp-ce-channel-title,.ytp-videowall-still-info-title,.ytp-videowall-still-info,.ytp-modern-videowall-still-info-title,.ytp-modern-videowall-still-info";
+
+  function findEndscreenCard(node, root) {
+    let current = node;
+    let known = null;
+    while (current && current !== root) {
+      if (current.matches && current.matches(ENDSCREEN_CARD_SELECTOR)) known = current;
+      current = current.parentElement;
+    }
+    if (known) return known;
+
+    const link = node.closest ? node.closest('a[href*="/watch"]') : null;
+    if (link) return link;
+
+    current = node;
+    while (current.parentElement && current.parentElement !== root) {
+      current = current.parentElement;
+    }
+    return current !== root && current.querySelector && current.querySelector('a[href*="/watch"]')
+      ? current
+      : null;
+  }
+
+  function collectRegularCards(root = document) {
+    const candidates = [];
+    if (root.nodeType === 1 && isVideoCard(root)) candidates.push(root);
+    root.querySelectorAll(CARD_SELECTOR).forEach((card) => candidates.push(card));
+    const unique = Array.from(new Set(candidates));
+    return unique.filter((card) => {
+      let parent = card.parentElement;
+      while (parent && parent !== document.body) {
+        if (isVideoCard(parent)) return false;
+        parent = parent.parentElement;
+      }
+      return true;
+    });
+  }
+
+  function collectEndscreenCards() {
+    const cards = new Set();
+    document.querySelectorAll(ENDSCREEN_ROOT_SELECTOR).forEach((root) => {
+      if (root.matches(ENDSCREEN_CARD_SELECTOR)) cards.add(root);
+      root.querySelectorAll(ENDSCREEN_CARD_SELECTOR).forEach((card) => {
+        const resolved = findEndscreenCard(card, root);
+        if (resolved) cards.add(resolved);
+      });
+      root.querySelectorAll('a[href*="/watch"]').forEach((link) => {
+        const card = findEndscreenCard(link, root);
+        if (card) cards.add(card);
+      });
+      root.querySelectorAll(ENDSCREEN_TITLE_SELECTOR).forEach((title) => {
+        const card = findEndscreenCard(title, root);
+        if (card) cards.add(card);
+      });
+    });
+    return cards;
+  }
+
+  function collectKeywordCards() {
+    return [...collectRegularCards(), ...collectEndscreenCards()].filter(
+      (card, index, all) => all.indexOf(card) === index
+    );
+  }
+
+  function scanKeywordCard(card) {
+    if (!card || !card.isConnected) return false;
+    const data = getCardSearchData(card);
+    const cached = keywordCache.get(card);
+    let hide;
+    if (cached && cached.revision === keywordRevision && cached.signature === data.signature) {
+      hide = cached.hide;
+    } else {
+      hide = matchesKeyword(card, data);
+      keywordCache.set(card, { revision: keywordRevision, signature: data.signature, hide });
+    }
+    if (card.classList.contains("yts-hidden-keyword") !== hide) {
+      card.classList.toggle("yts-hidden-keyword", hide);
+    }
+    return hide;
+  }
 
   function scanKeywords() {
     if (!S.keywordEnabled || !hasKeywords()) return;
     let hidden = 0;
     let evaluated = 0;
 
-    document.querySelectorAll(CARD_SELECTOR).forEach((card) => {
-      const all = (card.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1200);
-      const key = textKey(all);
-
-      let hide;
-      const cached = keywordCache.get(card);
-      if (cached && cached.key === key) {
-        hide = cached.hide;
-      } else {
-        hide = matchesKeyword(card, all);
-        keywordCache.set(card, { key, hide });
+    collectKeywordCards().forEach((card) => {
+      const before = keywordCache.get(card);
+      const hide = scanKeywordCard(card);
+      const after = keywordCache.get(card);
+      if (
+        !before ||
+        !after ||
+        before.signature !== after.signature ||
+        before.revision !== after.revision
+      ) {
         evaluated++;
       }
-
       if (hide) hidden++;
-      // 変化がないときは classList を触らない (スタイル再計算を避ける)
-      if (card.classList.contains("yts-hidden-keyword") !== hide) {
-        card.classList.toggle("yts-hidden-keyword", hide);
-      }
     });
     if (DEBUG) {
       console.debug(
@@ -626,6 +745,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     document
       .querySelectorAll(".yts-hidden-keyword")
       .forEach((el) => el.classList.remove("yts-hidden-keyword"));
+    keywordCache = new WeakMap();
   }
 
   // ==================================================================
@@ -641,16 +761,34 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     'ytd-thumbnail-overlay-time-status-renderer[overlay-style="SHORTS"]',
   ];
 
-  function hideEl(el, reason) {
-    if (!el || !el.style) return;
-    if (el.getAttribute("data-yts-hidden") === reason) return;
-    if (el.hasAttribute("data-yts-hidden")) return;
-    el.style.setProperty("display", "none", "important");
-    el.setAttribute("data-yts-hidden", reason);
+  const HIDE_REASON_CLASSES = {
+    shorts: "yts-hidden-shorts",
+    game: "yts-hidden-game",
+    mix: "yts-hidden-mix",
+  };
+
+  function hasHideReason(el, reason) {
+    const className = HIDE_REASON_CLASSES[reason];
+    return !!(el && className && el.classList.contains(className));
   }
 
-  function showEl(el) {
-    if (!el || !el.hasAttribute("data-yts-hidden")) return;
+  function hideEl(el, reason) {
+    if (!el || !el.style || !HIDE_REASON_CLASSES[reason]) return;
+    if (hasHideReason(el, reason)) return;
+    el.classList.add(HIDE_REASON_CLASSES[reason]);
+    el.style.setProperty("display", "none", "important");
+    const reasons = Object.keys(HIDE_REASON_CLASSES).filter((key) => hasHideReason(el, key));
+    el.setAttribute("data-yts-hidden", reasons.join(" "));
+  }
+
+  function showEl(el, reason) {
+    if (!el || !HIDE_REASON_CLASSES[reason]) return;
+    el.classList.remove(HIDE_REASON_CLASSES[reason]);
+    const reasons = Object.keys(HIDE_REASON_CLASSES).filter((key) => hasHideReason(el, key));
+    if (reasons.length) {
+      el.setAttribute("data-yts-hidden", reasons.join(" "));
+      return;
+    }
     el.style.removeProperty("display");
     el.removeAttribute("data-yts-hidden");
   }
@@ -666,7 +804,6 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     }
 
     document.querySelectorAll("ytd-rich-item-renderer").forEach((item) => {
-      if (item.hasAttribute("data-yts-hidden")) return;
       if (
         item.querySelector('a[href*="/shorts/"]') ||
         item.querySelector('[overlay-style="SHORTS"]') ||
@@ -677,7 +814,6 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     });
 
     document.querySelectorAll("ytd-shelf-renderer").forEach((shelf) => {
-      if (shelf.hasAttribute("data-yts-hidden")) return;
       if (
         shelf.querySelector("ytd-reel-item-renderer") ||
         shelf.querySelector("ytd-reel-shelf-renderer") ||
@@ -690,9 +826,9 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   }
 
   function restoreHidden(reason) {
-    document
-      .querySelectorAll(`[data-yts-hidden="${reason}"]`)
-      .forEach((el) => showEl(el));
+    const className = HIDE_REASON_CLASSES[reason];
+    if (!className) return;
+    document.querySelectorAll(`.${className}`).forEach((el) => showEl(el, reason));
   }
 
   // ==================================================================
@@ -702,25 +838,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   const CH_HREF_RE = /^\/(@[^/?#]+|channel\/[^/?#]+|c\/[^/?#]+|user\/[^/?#]+)(\/|\?|#|$)/;
 
   // ボタンを1つ置く単位 (カード / 動画ページの投稿者欄)
-  const BUTTON_CARD_SELECTOR = [
-    "ytd-rich-item-renderer",
-    "ytd-video-renderer",
-    "ytd-compact-video-renderer",
-    "ytd-grid-video-renderer",
-    "ytd-playlist-video-renderer",
-    "ytd-playlist-panel-video-renderer",
-    "ytd-compact-playlist-renderer",
-    "ytd-compact-radio-renderer",
-    "ytd-compact-movie-renderer",
-    "ytd-compact-autoplay-renderer",
-    "ytd-movie-renderer",
-    "ytd-channel-renderer",
-    "ytd-grid-channel-renderer",
-    "yt-lockup-view-model",
-    "ytd-video-owner-renderer",
-    "ytm-compact-video-renderer",
-    "ytm-video-with-context-renderer",
-  ].join(",");
+  const BUTTON_CARD_SELECTOR = [...CARD_SELECTORS, "ytd-video-owner-renderer"].join(",");
 
   const DEBUG = (() => {
     try {
@@ -732,18 +850,20 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
 
   /** チャンネル名を完全一致キーワード ("名前") として追加する */
   function addExactKeyword(name) {
-    const trimmed = (name || "").trim();
-    if (!trimmed) return;
-    const entry = `"${trimmed.replace(/"/g, "")}"`;
+    const entry = YTSShared.makeExactKeyword(name);
+    if (!entry) return false;
 
-    const list = Array.isArray(S.ytFilterKeywords) ? S.ytFilterKeywords : [];
-    if (list.some((kw) => kw.trim().toLowerCase() === entry.toLowerCase())) return;
-
-    const next = [...list, entry];
-    S.ytFilterKeywords = next;
+    const list = cleanKeywordList(S.ytFilterKeywords);
+    if (!list.some((kw) => YTSShared.keywordIdentity(kw) === YTSShared.keywordIdentity(entry))) {
+      const next = [...list, entry];
+      S.ytFilterKeywords = next;
+      storageSet({ ytFilterKeywords: next });
+    } else {
+      S.ytFilterKeywords = list;
+    }
     rebuildKeywords();
-    storageSet({ ytFilterKeywords: next });
     runScan();
+    return true;
   }
 
   function createBlockButton() {
@@ -773,6 +893,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   /** target の直前にボタンを置き、対象チャンネル名を同期する */
   function syncBlockButton(target, name) {
     if (!target || !target.parentNode) return false;
+    const cleanName = (name || "").replace(/^\s*[×✕✖☓✗]\s*/, "").trim();
     let btn = target.previousElementSibling;
     if (!btn || !btn.classList || !btn.classList.contains("yts-block-btn")) {
       btn = createBlockButton();
@@ -783,9 +904,9 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       }
     }
     // 仮想スクロールで要素が使い回されるため、毎回同期する
-    if (btn.dataset.ytsName !== name) {
-      btn.dataset.ytsName = name;
-      btn.title = I18N.t("blockBtnTitle", { name });
+    if (btn.dataset.ytsName !== cleanName) {
+      btn.dataset.ytsName = cleanName;
+      btn.title = I18N.t("blockBtnTitle", { name: cleanName });
       btn.setAttribute("aria-label", btn.title);
     }
     return true;
@@ -824,7 +945,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       const href = a.getAttribute("href") || "";
       if (!CH_HREF_RE.test(href)) continue;
       if (isTitleNode(a)) continue;
-      const name = (a.textContent || "").trim();
+      const name = textWithoutBlockButtons(a).trim();
       if (!looksLikeChannelName(name)) continue;
       return { node: a, name };
     }
@@ -840,7 +961,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     for (const sel of KNOWN) {
       for (const node of card.querySelectorAll(sel)) {
         if (isTitleNode(node)) continue;
-        const name = (node.textContent || "").trim();
+        const name = textWithoutBlockButtons(node).trim();
         if (!looksLikeChannelName(name)) continue;
         return { node, name };
       }
@@ -853,13 +974,16 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       const rows = Array.from(meta.children);
       for (const row of rows) {
         if (isTitleNode(row)) continue;
-        const name = (row.textContent || "").trim();
+        const name = textWithoutBlockButtons(row).trim();
         if (!looksLikeChannelName(name)) continue;
         // 行の中の最初のテキスト要素の手前に置く
         const inner = Array.from(row.querySelectorAll("span,a,div")).find((n) =>
-          looksLikeChannelName((n.textContent || "").trim())
+          looksLikeChannelName(textWithoutBlockButtons(n).trim())
         );
-        return { node: inner || row, name };
+        return {
+          node: inner || row,
+          name: textWithoutBlockButtons(inner || row).trim(),
+        };
       }
     }
 
@@ -877,9 +1001,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     let sample = null;
 
     document.querySelectorAll(BUTTON_CARD_SELECTOR).forEach((card) => {
-      if (card.hasAttribute("data-yts-hidden")) return;
-
-      const key = textKey((card.textContent || "").slice(0, 200));
+      const key = textWithoutBlockButtons(card).replace(/\s+/g, " ").trim();
       const cached = buttonCache.get(card);
       // 同じ内容で、ボタンも生きているならスキップ
       if (cached === key && card.querySelector(".yts-block-btn")) return;
@@ -915,6 +1037,8 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   // 5. 再生速度
   // ==================================================================
   const hookedVideos = new WeakSet();
+  const videoSources = new WeakMap();
+  const speedApplyTimers = new WeakMap();
   let toastEl = null;
   let toastTimer = null;
   let saveTimer = null;
@@ -930,31 +1054,85 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     );
   }
 
-  function applySpeedTo(video) {
+  function setVideoPlaybackRate(video, rate) {
     if (!video) return;
-    const target = clampSpeed(S.playbackSpeed);
-    if (Math.abs(video.playbackRate - target) < 0.001) return;
     try {
-      video.playbackRate = target;
+      video.defaultPlaybackRate = rate;
+      video.playbackRate = rate;
     } catch (_) {}
   }
 
-  function applySpeedToAll() {
+  function resetVideoSpeed(video) {
+    setVideoPlaybackRate(video, DEFAULT_PLAYBACK_RATE);
+  }
+
+  function applySpeedTo(video, force) {
+    if (!video) return;
+    const target = clampSpeed(S.playbackSpeed);
+    if (
+      !force &&
+      Math.abs(video.playbackRate - target) < 0.001 &&
+      Math.abs(video.defaultPlaybackRate - target) < 0.001
+    ) {
+      return;
+    }
+    setVideoPlaybackRate(video, target);
+  }
+
+  function applySpeedToAll(force) {
     if (!S.speedEnabled) return;
-    document.querySelectorAll("video").forEach(applySpeedTo);
+    document.querySelectorAll("video").forEach((video) => applySpeedTo(video, force));
+  }
+
+  function videoSource(video) {
+    return video.currentSrc || video.src || "";
+  }
+
+  function scheduleVideoSpeed(video) {
+    if (!video || !S.speedEnabled) return;
+    const oldTimer = speedApplyTimers.get(video);
+    if (oldTimer) clearTimeout(oldTimer);
+    const timer = setTimeout(() => {
+      speedApplyTimers.delete(video);
+      if (S.speedEnabled) applySpeedTo(video, true);
+    }, 0);
+    speedApplyTimers.set(video, timer);
+  }
+
+  function resetAndApplyVideoSpeed(video) {
+    if (!video || !S.speedEnabled) return;
+    videoSources.set(video, videoSource(video));
+    resetVideoSpeed(video);
+    scheduleVideoSpeed(video);
   }
 
   function hookVideo(video) {
     if (hookedVideos.has(video)) return;
     hookedVideos.add(video);
-    // YouTube が速度をリセットするタイミングで再適用する
-    ["loadstart", "loadedmetadata", "canplay", "durationchange", "playing"].forEach(
-      (ev) => video.addEventListener(ev, () => S.speedEnabled && applySpeedTo(video))
+    ["emptied", "loadstart"].forEach((ev) =>
+      video.addEventListener(ev, () => resetAndApplyVideoSpeed(video))
+    );
+    ["loadedmetadata", "canplay", "durationchange", "playing"].forEach((ev) =>
+      video.addEventListener(ev, () => {
+        if (!S.speedEnabled) return;
+        const source = videoSource(video);
+        if (videoSources.get(video) !== source) {
+          resetAndApplyVideoSpeed(video);
+          return;
+        }
+        applySpeedTo(video, true);
+      })
     );
     // 表示サイズが変わると回転時の縮小率も変わる
     ["loadedmetadata", "resize"].forEach((ev) =>
       video.addEventListener(ev, () => rotation && applyRotation())
     );
+    // 視聴終了後のカードは ended の後に遅れて生成されるため、表示直後にも再判定する
+    video.addEventListener("ended", () => {
+      scheduleScan();
+      setTimeout(scheduleScan, 350);
+      setTimeout(scheduleScan, 1000);
+    });
   }
 
   function hookVideos() {
@@ -970,7 +1148,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       burstTimers.push(
         setTimeout(() => {
           hookVideos();
-          if (S.speedEnabled) applySpeedToAll();
+          if (S.speedEnabled) applySpeedToAll(true);
           if (rotation) applyRotation();
         }, delay)
       );
@@ -1002,7 +1180,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   function setSpeed(next) {
     const speed = clampSpeed(next);
     S.playbackSpeed = speed;
-    document.querySelectorAll("video").forEach(applySpeedTo);
+    document.querySelectorAll("video").forEach((video) => applySpeedTo(video, true));
     showToast(formatSpeed(speed) + "x");
     saveSpeed(speed);
   }
@@ -1081,6 +1259,385 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   const rotationStep = () =>
     ROTATION_STEPS.includes(Number(S.rotationStep)) ? Number(S.rotationStep) : 90;
 
+  const TITLE_SPOOF_CSS = `
+.html5-video-player.yts-title-spoof-active .html5-video-container,
+#movie_player.yts-title-spoof-active .html5-video-container {
+  background: #000 !important;
+}
+.html5-video-player.yts-title-spoof-active video,
+#movie_player.yts-title-spoof-active video {
+  opacity: 0 !important;
+}
+.html5-video-player.yts-title-spoof-active .ytp-caption-window-container,
+.html5-video-player.yts-title-spoof-active .ytp-iv-player-content,
+#movie_player.yts-title-spoof-active .ytp-caption-window-container,
+#movie_player.yts-title-spoof-active .ytp-iv-player-content {
+  visibility: hidden !important;
+}
+`;
+
+  const SPOOF_TITLE_SELECTOR = "ytd-watch-metadata h1,#title h1,h1.ytd-watch-metadata";
+  const SPOOF_CHANNEL_SELECTOR =
+    "#owner #channel-name,#upload-info #channel-name,ytd-watch-metadata #channel-name,ytd-video-owner-renderer #channel-name";
+  const SPOOF_AVATAR_SELECTOR =
+    "#owner #avatar img,#owner yt-img-shadow img,#upload-info #avatar img,ytd-video-owner-renderer #avatar img,ytd-video-owner-renderer yt-img-shadow img";
+
+  let titleSpoofStyleEl = null;
+
+  function ensureTitleSpoofStyle() {
+    if (titleSpoofStyleEl && titleSpoofStyleEl.isConnected) return titleSpoofStyleEl;
+    titleSpoofStyleEl = document.createElement("style");
+    titleSpoofStyleEl.id = "yts-title-spoof-style";
+    titleSpoofStyleEl.textContent = TITLE_SPOOF_CSS;
+    (document.head || document.documentElement).appendChild(titleSpoofStyleEl);
+    return titleSpoofStyleEl;
+  }
+
+  let titleSpoofActive = false;
+  let titleSpoofUsedSinceLoad = false;
+  let titleSpoofOriginal = document.title;
+  let titleSpoofOriginalChannelName = "";
+  let titleSpoofLastValue = "";
+  let titleSpoofKeywordPrevious = null;
+  const spoofedTitleValues = new Set();
+  const spoofedChannelValues = new Set();
+  const spoofTextElements = new Set();
+  let spoofTextOriginals = new WeakMap();
+  const spoofImageElements = new Set();
+  let spoofImageOriginals = new WeakMap();
+  const spoofFaviconElements = new Set();
+  let spoofFaviconOriginals = new WeakMap();
+  let spoofFaviconCreated = null;
+
+  function spoofIconUrl() {
+    const value = typeof S.titleSpoofIconUrl === "string" ? S.titleSpoofIconUrl.trim() : "";
+    return /^(https?:|data:image\/|chrome-extension:)/i.test(value) ? value : "";
+  }
+
+  function playerResponseData() {
+    const direct = window.ytInitialPlayerResponse;
+    if (direct && typeof direct === "object") return direct;
+    const raw = window.ytplayer && window.ytplayer.config && window.ytplayer.config.args
+      ? window.ytplayer.config.args.player_response
+      : "";
+    if (typeof raw !== "string" || !raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function textFromRuns(value) {
+    if (!value || typeof value !== "object") return "";
+    if (typeof value.simpleText === "string") return value.simpleText.trim();
+    if (!Array.isArray(value.runs)) return "";
+    return value.runs
+      .map((run) => (run && typeof run.text === "string" ? run.text : ""))
+      .join("")
+      .trim();
+  }
+
+  function currentVideoId() {
+    try {
+      const url = new URL(location.href);
+      const queryId = url.searchParams.get("v");
+      if (queryId) return queryId;
+      const match = url.pathname.match(/^\/(?:shorts|live|embed)\/([^/?#]+)/);
+      return match ? match[1] : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function isCurrentPlayerResponse(response) {
+    if (!response || !response.videoDetails) return false;
+    const currentId = currentVideoId();
+    const responseId = response.videoDetails.videoId;
+    return !currentId || !responseId || currentId === responseId;
+  }
+
+  function findChannelInInitialData(data) {
+    const contents =
+      data &&
+      data.contents &&
+      data.contents.twoColumnWatchNextResults &&
+      data.contents.twoColumnWatchNextResults.results &&
+      data.contents.twoColumnWatchNextResults.results.results &&
+      data.contents.twoColumnWatchNextResults.results.results.contents;
+    if (!Array.isArray(contents)) return "";
+
+    for (const item of contents) {
+      const secondary = item && item.videoSecondaryInfoRenderer;
+      const owner = secondary && secondary.owner && secondary.owner.videoOwnerRenderer;
+      if (!owner) continue;
+      const name = textFromRuns(owner.title) || textFromRuns(owner.ownerText);
+      if (name) return name;
+    }
+    return "";
+  }
+
+  function isSpoofedMetadataValue(value, configured, previousValues) {
+    const current = typeof value === "string" ? value.trim() : "";
+    if (!current) return true;
+    if (configured && current === configured) return true;
+    if (previousValues && previousValues.has(current)) return true;
+    return /^youtube$/i.test(current);
+  }
+
+  function visibleChannelName() {
+    const elements = document.querySelectorAll(SPOOF_CHANNEL_SELECTOR);
+    for (const element of elements) {
+      const name = textWithoutBlockButtons(element).replace(/\s+/g, " ").trim();
+      if (name) return name;
+    }
+    return actualChannelName();
+  }
+
+  function originalChannelName() {
+    return titleSpoofOriginalChannelName || actualChannelName();
+  }
+
+  function clearSpoofSessionState() {
+    spoofedTitleValues.clear();
+    spoofedChannelValues.clear();
+    titleSpoofOriginalChannelName = "";
+  }
+
+  function actualVideoTitle() {
+    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
+    const pageTitle = document.title.replace(/\s+-\s+YouTube(?:\s+-\s+Vivaldi)?\s*$/i, "").trim();
+    const usablePageTitle =
+      pageTitle && !/^youtube(?:\s+music)?$/i.test(pageTitle) && pageTitle !== fakeTitle
+        ? pageTitle
+        : "";
+    if (usablePageTitle) return usablePageTitle;
+    const response = playerResponseData();
+    const responseTitle = response && response.videoDetails && response.videoDetails.title;
+    if (isCurrentPlayerResponse(response) && typeof responseTitle === "string" && responseTitle.trim()) {
+      return responseTitle.trim();
+    }
+    return usablePageTitle;
+  }
+
+  function actualChannelName() {
+    const response = playerResponseData();
+    const author = response && response.videoDetails && response.videoDetails.author;
+    if (isCurrentPlayerResponse(response) && typeof author === "string" && author.trim()) {
+      return author.trim();
+    }
+    return findChannelInInitialData(window.ytInitialData);
+  }
+
+  function rememberSpoofText(element) {
+    if (spoofTextOriginals.has(element)) return true;
+    const html = element.innerHTML || "";
+    const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+    if (!text) return false;
+    spoofTextOriginals.set(element, { html, text });
+    spoofTextElements.add(element);
+    return true;
+  }
+
+  function applySpoofMetadata() {
+    const title = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
+    const channel =
+      typeof S.titleSpoofChannelName === "string" ? S.titleSpoofChannelName.trim() : "";
+    if (title) {
+      spoofedTitleValues.add(title);
+      document.querySelectorAll(SPOOF_TITLE_SELECTOR).forEach((element) => {
+        if (!rememberSpoofText(element)) return;
+        element.textContent = title;
+      });
+    }
+    if (channel) {
+      if (!titleSpoofOriginalChannelName) titleSpoofOriginalChannelName = visibleChannelName();
+      spoofedChannelValues.add(channel);
+      document.querySelectorAll(SPOOF_CHANNEL_SELECTOR).forEach((element) => {
+        if (!rememberSpoofText(element)) return;
+        element.textContent = channel;
+      });
+    }
+    const icon = spoofIconUrl();
+    if (!icon) return;
+    document.querySelectorAll(SPOOF_AVATAR_SELECTOR).forEach((element) => {
+      if (!spoofImageOriginals.has(element)) {
+        spoofImageOriginals.set(element, {
+          src: element.getAttribute("src"),
+          srcset: element.getAttribute("srcset"),
+          sizes: element.getAttribute("sizes"),
+          dataSrc: element.getAttribute("data-src"),
+          alt: element.getAttribute("alt"),
+        });
+        spoofImageElements.add(element);
+      }
+      element.setAttribute("src", icon);
+      element.removeAttribute("srcset");
+      element.removeAttribute("data-src");
+      if (channel) element.setAttribute("alt", channel);
+    });
+    let faviconLinks = [...document.querySelectorAll('link[rel~="icon"],link[rel="shortcut icon"]')];
+    if (!faviconLinks.length && document.head) {
+      const link = document.createElement("link");
+      link.id = "yts-title-spoof-favicon";
+      link.rel = "icon";
+      document.head.appendChild(link);
+      spoofFaviconCreated = link;
+      faviconLinks = [link];
+    }
+    faviconLinks.forEach((element) => {
+      if (!spoofFaviconOriginals.has(element)) {
+        spoofFaviconOriginals.set(element, element.getAttribute("href"));
+        spoofFaviconElements.add(element);
+      }
+      element.setAttribute("href", icon);
+    });
+  }
+
+  function restoreSpoofMetadata() {
+    spoofTextElements.forEach((element) => {
+      if (!element.isConnected) return;
+      const original = spoofTextOriginals.get(element);
+      if (!original) return;
+      if (original.html.trim()) {
+        element.innerHTML = original.html;
+      } else if (original.text) {
+        element.textContent = original.text;
+      } else if (element.matches(SPOOF_TITLE_SELECTOR)) {
+        element.textContent = actualVideoTitle();
+      } else if (element.matches(SPOOF_CHANNEL_SELECTOR)) {
+        const channel = originalChannelName();
+        if (channel) element.textContent = channel;
+      }
+    });
+    spoofImageElements.forEach((element) => {
+      const original = spoofImageOriginals.get(element);
+      if (!element.isConnected || !original) return;
+      ["src", "srcset", "sizes", "data-src", "alt"].forEach((name) => {
+        const value = original[name === "data-src" ? "dataSrc" : name];
+        if (value === null || value === undefined) element.removeAttribute(name);
+        else element.setAttribute(name, value);
+      });
+    });
+    spoofTextElements.clear();
+    spoofImageElements.clear();
+    spoofTextOriginals = new WeakMap();
+    spoofImageOriginals = new WeakMap();
+    spoofFaviconElements.forEach((element) => {
+      if (!element.isConnected) return;
+      if (element === spoofFaviconCreated) {
+        element.remove();
+        return;
+      }
+      const original = spoofFaviconOriginals.get(element);
+      if (original === null || original === undefined) element.removeAttribute("href");
+      else element.setAttribute("href", original);
+    });
+    spoofFaviconElements.clear();
+    spoofFaviconOriginals = new WeakMap();
+    spoofFaviconCreated = null;
+  }
+
+  function recoverSpoofTextWhenOff() {
+    if (titleSpoofActive) return;
+    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
+    const title = actualVideoTitle();
+    if (title) {
+      document.querySelectorAll(SPOOF_TITLE_SELECTOR).forEach((element) => {
+        const current = (element.textContent || "").replace(/\s+/g, " ").trim();
+        if (isSpoofedMetadataValue(current, fakeTitle, spoofedTitleValues)) {
+          element.textContent = title;
+        }
+      });
+    }
+    const fakeChannel =
+      typeof S.titleSpoofChannelName === "string" ? S.titleSpoofChannelName.trim() : "";
+    const channel = originalChannelName();
+    if (channel) {
+      document.querySelectorAll(SPOOF_CHANNEL_SELECTOR).forEach((element) => {
+        const current = (element.textContent || "").replace(/\s+/g, " ").trim();
+        if (isSpoofedMetadataValue(current, fakeChannel, spoofedChannelValues)) {
+          element.textContent = channel;
+        }
+      });
+    }
+  }
+
+  function syncSpoofMode() {
+    if (!titleSpoofActive) return;
+    ensureTitleSpoofStyle().disabled = false;
+    document.querySelectorAll(".html5-video-player,#movie_player").forEach((player) => {
+      player.classList.toggle("yts-title-spoof-active", titleSpoofActive);
+    });
+    applySpoofMetadata();
+  }
+
+  ensureTitleSpoofStyle();
+
+  function syncTitleSpoof() {
+    if (!titleSpoofActive) return;
+    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
+    const currentTitle = document.title;
+
+    if (fakeTitle) {
+      if (currentTitle && currentTitle !== titleSpoofLastValue && currentTitle !== fakeTitle) {
+        titleSpoofOriginal = currentTitle;
+      }
+      titleSpoofLastValue = fakeTitle;
+      if (currentTitle !== fakeTitle) document.title = fakeTitle;
+      return;
+    }
+  }
+
+  function restoreTitleSpoof() {
+    const currentTitle = document.title;
+    if (currentTitle === titleSpoofLastValue && titleSpoofOriginal) {
+      document.title = titleSpoofOriginal;
+    }
+    titleSpoofLastValue = "";
+  }
+
+  function toggleTitleSpoof() {
+    if (titleSpoofActive) {
+      titleSpoofActive = false;
+      restoreTitleSpoof();
+      document.querySelectorAll(".yts-title-spoof-active").forEach((element) => {
+        element.classList.remove("yts-title-spoof-active");
+      });
+      restoreSpoofMetadata();
+      recoverSpoofTextWhenOff();
+      clearSpoofSessionState();
+      if (titleSpoofKeywordPrevious !== null) {
+        const previous = titleSpoofKeywordPrevious;
+        titleSpoofKeywordPrevious = null;
+        S.keywordEnabled = previous;
+        rebuildKeywords();
+        if (!previous) clearKeywordHidden();
+        storageSet({ keywordEnabled: previous });
+      }
+      return;
+    }
+    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
+    if (!fakeTitle) {
+      showToast(I18N.t("titleSpoofEmpty"));
+      return;
+    }
+    titleSpoofOriginal = document.title;
+    titleSpoofOriginalChannelName = visibleChannelName();
+    titleSpoofLastValue = "";
+    titleSpoofActive = true;
+    titleSpoofUsedSinceLoad = true;
+    if (!S.keywordEnabled) {
+      titleSpoofKeywordPrevious = false;
+      S.keywordEnabled = true;
+      rebuildKeywords();
+      storageSet({ keywordEnabled: true });
+    }
+    syncTitleSpoof();
+    syncSpoofMode();
+  }
+
   // プレーヤーの大きさが変わると必要な倍率も変わる
   window.addEventListener("resize", () => rotation && applyRotation());
   document.addEventListener("fullscreenchange", () =>
@@ -1123,6 +1680,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     speedUp: { run: () => setSpeed(S.playbackSpeed + STEP), enabled: () => true },
     rotateLeft: { run: () => rotateBy(-rotationStep()), enabled: () => S.rotationEnabled },
     rotateRight: { run: () => rotateBy(rotationStep()), enabled: () => S.rotationEnabled },
+    titleSpoof: { run: toggleTitleSpoof, enabled: () => true },
   };
 
   document.addEventListener(
@@ -1246,6 +1804,14 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   let scanTimer = null;
   let scanScheduled = false;
 
+  function runScanTask(name, task) {
+    try {
+      task();
+    } catch (error) {
+      if (DEBUG) console.warn(`[YouTube Suite] ${name} failed`, error);
+    }
+  }
+
   function runScan() {
     scanScheduled = false;
     if (!settingsLoaded || !alive) return;
@@ -1253,27 +1819,18 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       shutdown();
       return;
     }
-    try {
-      scanShorts();
-    } catch (_) {}
-    try {
-      scanGames();
-    } catch (_) {}
-    try {
-      scanMix();
-    } catch (_) {}
-    try {
-      scanKeywords();
-    } catch (_) {}
-    try {
-      decorateChannelButtons();
-    } catch (_) {}
-    try {
-      hookVideos();
-    } catch (_) {}
-    try {
-      applyBoost();
-    } catch (_) {}
+    runScanTask("Shorts scan", scanShorts);
+    runScanTask("game scan", scanGames);
+    runScanTask("Mix scan", scanMix);
+    runScanTask("player cards style", syncPlayerCardsStyle);
+    if (titleSpoofActive) {
+      runScanTask("title spoof", syncTitleSpoof);
+      runScanTask("spoof visuals and metadata", syncSpoofMode);
+    }
+    runScanTask("keyword scan", scanKeywords);
+    runScanTask("channel button scan", decorateChannelButtons);
+    runScanTask("video hook", hookVideos);
+    runScanTask("volume boost", applyBoost);
   }
 
   function scheduleScan() {
@@ -1285,22 +1842,48 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
 
   const observer = new MutationObserver((mutations) => {
     for (const m of mutations) {
-      if (m.addedNodes.length > 0 || m.type === "characterData" || m.type === "attributes") {
+      if (m.addedNodes.length > 0) {
         scheduleScan();
         return;
+      }
+      if (m.type === "attributes") {
+        scheduleScan();
+        return;
+      }
+      if (m.type === "characterData") {
+        const parent = m.target && m.target.parentElement;
+        if (parent && parent.tagName === "TITLE") {
+          scheduleScan();
+          return;
+        }
+        if (
+          parent &&
+          (parent.closest(CARD_SELECTOR) ||
+            parent.closest(ENDSCREEN_CARD_SELECTOR) ||
+            parent.closest(ENDSCREEN_ROOT_SELECTOR))
+        ) {
+          scheduleScan();
+          return;
+        }
       }
     }
   });
 
   function startObserving() {
-    // characterData は監視しない。YouTube は視聴回数や経過時間を頻繁に
-    // 書き換えるため、監視すると通知が止まらず CPU を食い続ける。
-    // 遅れて描画されたタイトルは下の定期スキャンで拾う。
     observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
+      characterData: true,
       attributes: true,
-      attributeFilter: ["title", "aria-label", "href", "is-shorts", "overlay-style"],
+      attributeFilter: [
+        "title",
+        "aria-label",
+        "href",
+        "data-title",
+        "data-author",
+        "is-shorts",
+        "overlay-style",
+      ],
     });
 
     // 非同期描画の取りこぼし対策。ブラウザが暇なときに実行する。
@@ -1316,12 +1899,25 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
 
   // ---- SPA ナビゲーション ----
   let lastHref = location.href;
+  let lastVideoId = currentVideoId();
 
   function onNavigate() {
     resetRotation(); // 回転は動画ごとにリセットする
+    if (titleSpoofActive) {
+      restoreSpoofMetadata();
+      clearSpoofSessionState();
+    }
     syncShortsStyle();
     syncGameStyle();
     syncMixStyle();
+    syncPlayerCardsStyle();
+    if (titleSpoofActive) {
+      syncTitleSpoof();
+      syncSpoofMode();
+    }
+    if (S.speedEnabled) {
+      document.querySelectorAll("video").forEach(resetVideoSpeed);
+    }
     burstApplySpeed();
     scheduleScan();
   }
@@ -1329,12 +1925,23 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   function checkNavigation() {
     if (!alive) return;
     if (location.href !== lastHref) {
+      const previousVideoId = lastVideoId;
+      const nextVideoId = currentVideoId();
       lastHref = location.href;
+      lastVideoId = nextVideoId;
+      if (
+        titleSpoofUsedSinceLoad &&
+        nextVideoId &&
+        nextVideoId !== previousVideoId
+      ) {
+        window.location.reload();
+        return;
+      }
       onNavigate();
     }
   }
 
-  window.addEventListener("yt-navigate-finish", onNavigate, true);
+  window.addEventListener("yt-navigate-finish", checkNavigation, true);
   window.addEventListener("yt-page-data-updated", scheduleScan, true);
   window.addEventListener("popstate", checkNavigation);
   navIntervalId = setInterval(checkNavigation, 400);
@@ -1344,16 +1951,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   // ==================================================================
   /** 壊れた/欠けたキー設定を既定値で補う */
   function sanitizeKeybinds() {
-    const src = S.keybinds && typeof S.keybinds === "object" ? S.keybinds : {};
-    const out = {};
-    Object.keys(DEFAULTS.keybinds).forEach((action) => {
-      const b = src[action];
-      out[action] =
-        b && typeof b === "object" && typeof b.code === "string" && b.code
-          ? { code: b.code, ctrl: !!b.ctrl, shift: !!b.shift, alt: !!b.alt }
-          : Object.assign({}, DEFAULTS.keybinds[action]);
-    });
-    S.keybinds = out;
+    S.keybinds = YTSShared.sanitizeKeybinds(S.keybinds);
     if (!ROTATION_STEPS.includes(Number(S.rotationStep))) {
       S.rotationStep = DEFAULTS.rotationStep;
     }
@@ -1364,6 +1962,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     syncShortsStyle();
     syncGameStyle();
     syncMixStyle();
+    syncPlayerCardsStyle();
 
     const touched = (k) => !changedKeys || changedKeys.includes(k);
 
@@ -1386,7 +1985,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       removeBlockButtons(); // ツールチップを新しい言語で作り直す
     }
     if (touched("playbackSpeed") || touched("speedEnabled")) {
-      if (S.speedEnabled) applySpeedToAll();
+      if (S.speedEnabled) applySpeedToAll(true);
     }
     if (touched("boostEnabled") || touched("volumeBoost")) {
       applyBoost();
@@ -1402,10 +2001,21 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
 
   chrome.storage.sync.get(DEFAULTS, (res) => {
     if (chrome.runtime.lastError) return;
-    Object.assign(S, res);
-    S.playbackSpeed = clampSpeed(S.playbackSpeed);
-    S.volumeBoost = clampBoost(S.volumeBoost);
-    if (!Array.isArray(S.ytFilterKeywords)) S.ytFilterKeywords = [];
+    const titleSpoofPatch = YTSShared.migrateTitleSpoofSettings(res);
+    const migratedSettings = Object.assign({}, res, titleSpoofPatch);
+    const previousKeywords = Array.isArray(res.ytFilterKeywords) ? res.ytFilterKeywords : [];
+    Object.assign(S, YTSShared.sanitizeSettings(migratedSettings));
+    if (Object.keys(titleSpoofPatch).length) storageSet(titleSpoofPatch);
+    const cleanedKeywords = S.ytFilterKeywords;
+    if (
+      cleanedKeywords.length !== previousKeywords.length ||
+      cleanedKeywords.some((kw, i) => kw !== previousKeywords[i])
+    ) {
+      S.ytFilterKeywords = cleanedKeywords;
+      storageSet({ ytFilterKeywords: cleanedKeywords });
+    } else {
+      S.ytFilterKeywords = cleanedKeywords;
+    }
     sanitizeKeybinds();
     I18N.setLanguage(S.language);
     settingsLoaded = true;
@@ -1414,6 +2024,8 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     syncShortsStyle();
     syncGameStyle();
     syncMixStyle();
+    syncPlayerCardsStyle();
+    syncTitleSpoof();
     hookVideos();
     burstApplySpeed();
 
@@ -1431,9 +2043,20 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       const v = changes[k].newValue;
       S[k] = v === undefined ? DEFAULTS[k] : v;
     });
+    if (titleSpoofActive && keys.includes("keywordEnabled") && !S.keywordEnabled) {
+      S.keywordEnabled = true;
+      storageSet({ keywordEnabled: true });
+    }
+    const previousKeywords = Array.isArray(S.ytFilterKeywords) ? S.ytFilterKeywords : [];
     S.playbackSpeed = clampSpeed(S.playbackSpeed);
     S.volumeBoost = clampBoost(S.volumeBoost);
-    if (!Array.isArray(S.ytFilterKeywords)) S.ytFilterKeywords = [];
+    S.ytFilterKeywords = cleanKeywordList(S.ytFilterKeywords);
+    if (
+      previousKeywords.length !== S.ytFilterKeywords.length ||
+      previousKeywords.some((kw, index) => kw !== S.ytFilterKeywords[index])
+    ) {
+      storageSet({ ytFilterKeywords: S.ytFilterKeywords });
+    }
     sanitizeKeybinds();
     I18N.setLanguage(S.language);
     if (settingsLoaded) applySettings(keys);

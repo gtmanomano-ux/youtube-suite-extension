@@ -8,7 +8,7 @@
   "content_scripts": [
     {
       "matches": ["*://www.youtube.com/*", "*://m.youtube.com/*"],
-      "js": ["i18n.js", "content.js"],
+      "js": ["common.js", "i18n.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_start",
       "all_frames": false
