@@ -71,6 +71,18 @@
     }
   }
 
+  function storageRemove(keys) {
+    if (!extensionAlive()) {
+      shutdown();
+      return;
+    }
+    try {
+      chrome.storage.sync.remove(keys);
+    } catch (_) {
+      shutdown();
+    }
+  }
+
   const MIN_SPEED = YTSShared.SPEED.min;
   const MAX_SPEED = YTSShared.SPEED.max;
   const DEFAULT_PLAYBACK_RATE = 1.0;
@@ -1259,325 +1271,14 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   const rotationStep = () =>
     ROTATION_STEPS.includes(Number(S.rotationStep)) ? Number(S.rotationStep) : 90;
 
-  const TITLE_SPOOF_CSS = `
-.html5-video-player.yts-title-spoof-active .html5-video-container,
-#movie_player.yts-title-spoof-active .html5-video-container {
-  background: #000 !important;
-}
-.html5-video-player.yts-title-spoof-active video,
-#movie_player.yts-title-spoof-active video {
-  opacity: 0 !important;
-}
-.html5-video-player.yts-title-spoof-active .ytp-caption-window-container,
-.html5-video-player.yts-title-spoof-active .ytp-iv-player-content,
-#movie_player.yts-title-spoof-active .ytp-caption-window-container,
-#movie_player.yts-title-spoof-active .ytp-iv-player-content {
-  visibility: hidden !important;
-}
-`;
-
-  const SPOOF_TITLE_SELECTOR = "ytd-watch-metadata h1,#title h1,h1.ytd-watch-metadata";
-  const SPOOF_CHANNEL_SELECTOR =
-    "#owner #channel-name,#upload-info #channel-name,ytd-watch-metadata #channel-name,ytd-video-owner-renderer #channel-name";
-  const SPOOF_AVATAR_SELECTOR =
-    "#owner #avatar img,#owner yt-img-shadow img,#upload-info #avatar img,ytd-video-owner-renderer #avatar img,ytd-video-owner-renderer yt-img-shadow img";
-
-  let titleSpoofStyleEl = null;
-
-  function ensureTitleSpoofStyle() {
-    if (titleSpoofStyleEl && titleSpoofStyleEl.isConnected) return titleSpoofStyleEl;
-    titleSpoofStyleEl = document.createElement("style");
-    titleSpoofStyleEl.id = "yts-title-spoof-style";
-    titleSpoofStyleEl.textContent = TITLE_SPOOF_CSS;
-    (document.head || document.documentElement).appendChild(titleSpoofStyleEl);
-    return titleSpoofStyleEl;
-  }
-
   let titleSpoofActive = false;
-  let titleSpoofUsedSinceLoad = false;
   let titleSpoofOriginal = document.title;
-  let titleSpoofOriginalChannelName = "";
   let titleSpoofLastValue = "";
   let titleSpoofKeywordPrevious = null;
-  const spoofedTitleValues = new Set();
-  const spoofedChannelValues = new Set();
-  const spoofTextElements = new Set();
-  let spoofTextOriginals = new WeakMap();
-  const spoofImageElements = new Set();
-  let spoofImageOriginals = new WeakMap();
-  const spoofFaviconElements = new Set();
-  let spoofFaviconOriginals = new WeakMap();
-  let spoofFaviconCreated = null;
-
-  function spoofIconUrl() {
-    const value = typeof S.titleSpoofIconUrl === "string" ? S.titleSpoofIconUrl.trim() : "";
-    return /^(https?:|data:image\/|chrome-extension:)/i.test(value) ? value : "";
-  }
-
-  function playerResponseData() {
-    const direct = window.ytInitialPlayerResponse;
-    if (direct && typeof direct === "object") return direct;
-    const raw = window.ytplayer && window.ytplayer.config && window.ytplayer.config.args
-      ? window.ytplayer.config.args.player_response
-      : "";
-    if (typeof raw !== "string" || !raw) return null;
-    try {
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === "object" ? parsed : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  function textFromRuns(value) {
-    if (!value || typeof value !== "object") return "";
-    if (typeof value.simpleText === "string") return value.simpleText.trim();
-    if (!Array.isArray(value.runs)) return "";
-    return value.runs
-      .map((run) => (run && typeof run.text === "string" ? run.text : ""))
-      .join("")
-      .trim();
-  }
-
-  function currentVideoId() {
-    try {
-      const url = new URL(location.href);
-      const queryId = url.searchParams.get("v");
-      if (queryId) return queryId;
-      const match = url.pathname.match(/^\/(?:shorts|live|embed)\/([^/?#]+)/);
-      return match ? match[1] : "";
-    } catch (_) {
-      return "";
-    }
-  }
-
-  function isCurrentPlayerResponse(response) {
-    if (!response || !response.videoDetails) return false;
-    const currentId = currentVideoId();
-    const responseId = response.videoDetails.videoId;
-    return !currentId || !responseId || currentId === responseId;
-  }
-
-  function findChannelInInitialData(data) {
-    const contents =
-      data &&
-      data.contents &&
-      data.contents.twoColumnWatchNextResults &&
-      data.contents.twoColumnWatchNextResults.results &&
-      data.contents.twoColumnWatchNextResults.results.results &&
-      data.contents.twoColumnWatchNextResults.results.results.contents;
-    if (!Array.isArray(contents)) return "";
-
-    for (const item of contents) {
-      const secondary = item && item.videoSecondaryInfoRenderer;
-      const owner = secondary && secondary.owner && secondary.owner.videoOwnerRenderer;
-      if (!owner) continue;
-      const name = textFromRuns(owner.title) || textFromRuns(owner.ownerText);
-      if (name) return name;
-    }
-    return "";
-  }
-
-  function isSpoofedMetadataValue(value, configured, previousValues) {
-    const current = typeof value === "string" ? value.trim() : "";
-    if (!current) return true;
-    if (configured && current === configured) return true;
-    if (previousValues && previousValues.has(current)) return true;
-    return /^youtube$/i.test(current);
-  }
-
-  function visibleChannelName() {
-    const elements = document.querySelectorAll(SPOOF_CHANNEL_SELECTOR);
-    for (const element of elements) {
-      const name = textWithoutBlockButtons(element).replace(/\s+/g, " ").trim();
-      if (name) return name;
-    }
-    return actualChannelName();
-  }
-
-  function originalChannelName() {
-    return titleSpoofOriginalChannelName || actualChannelName();
-  }
-
-  function clearSpoofSessionState() {
-    spoofedTitleValues.clear();
-    spoofedChannelValues.clear();
-    titleSpoofOriginalChannelName = "";
-  }
-
-  function actualVideoTitle() {
-    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
-    const pageTitle = document.title.replace(/\s+-\s+YouTube(?:\s+-\s+Vivaldi)?\s*$/i, "").trim();
-    const usablePageTitle =
-      pageTitle && !/^youtube(?:\s+music)?$/i.test(pageTitle) && pageTitle !== fakeTitle
-        ? pageTitle
-        : "";
-    if (usablePageTitle) return usablePageTitle;
-    const response = playerResponseData();
-    const responseTitle = response && response.videoDetails && response.videoDetails.title;
-    if (isCurrentPlayerResponse(response) && typeof responseTitle === "string" && responseTitle.trim()) {
-      return responseTitle.trim();
-    }
-    return usablePageTitle;
-  }
-
-  function actualChannelName() {
-    const response = playerResponseData();
-    const author = response && response.videoDetails && response.videoDetails.author;
-    if (isCurrentPlayerResponse(response) && typeof author === "string" && author.trim()) {
-      return author.trim();
-    }
-    return findChannelInInitialData(window.ytInitialData);
-  }
-
-  function rememberSpoofText(element) {
-    if (spoofTextOriginals.has(element)) return true;
-    const html = element.innerHTML || "";
-    const text = (element.textContent || "").replace(/\s+/g, " ").trim();
-    if (!text) return false;
-    spoofTextOriginals.set(element, { html, text });
-    spoofTextElements.add(element);
-    return true;
-  }
-
-  function applySpoofMetadata() {
-    const title = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
-    const channel =
-      typeof S.titleSpoofChannelName === "string" ? S.titleSpoofChannelName.trim() : "";
-    if (title) {
-      spoofedTitleValues.add(title);
-      document.querySelectorAll(SPOOF_TITLE_SELECTOR).forEach((element) => {
-        if (!rememberSpoofText(element)) return;
-        element.textContent = title;
-      });
-    }
-    if (channel) {
-      if (!titleSpoofOriginalChannelName) titleSpoofOriginalChannelName = visibleChannelName();
-      spoofedChannelValues.add(channel);
-      document.querySelectorAll(SPOOF_CHANNEL_SELECTOR).forEach((element) => {
-        if (!rememberSpoofText(element)) return;
-        element.textContent = channel;
-      });
-    }
-    const icon = spoofIconUrl();
-    if (!icon) return;
-    document.querySelectorAll(SPOOF_AVATAR_SELECTOR).forEach((element) => {
-      if (!spoofImageOriginals.has(element)) {
-        spoofImageOriginals.set(element, {
-          src: element.getAttribute("src"),
-          srcset: element.getAttribute("srcset"),
-          sizes: element.getAttribute("sizes"),
-          dataSrc: element.getAttribute("data-src"),
-          alt: element.getAttribute("alt"),
-        });
-        spoofImageElements.add(element);
-      }
-      element.setAttribute("src", icon);
-      element.removeAttribute("srcset");
-      element.removeAttribute("data-src");
-      if (channel) element.setAttribute("alt", channel);
-    });
-    let faviconLinks = [...document.querySelectorAll('link[rel~="icon"],link[rel="shortcut icon"]')];
-    if (!faviconLinks.length && document.head) {
-      const link = document.createElement("link");
-      link.id = "yts-title-spoof-favicon";
-      link.rel = "icon";
-      document.head.appendChild(link);
-      spoofFaviconCreated = link;
-      faviconLinks = [link];
-    }
-    faviconLinks.forEach((element) => {
-      if (!spoofFaviconOriginals.has(element)) {
-        spoofFaviconOriginals.set(element, element.getAttribute("href"));
-        spoofFaviconElements.add(element);
-      }
-      element.setAttribute("href", icon);
-    });
-  }
-
-  function restoreSpoofMetadata() {
-    spoofTextElements.forEach((element) => {
-      if (!element.isConnected) return;
-      const original = spoofTextOriginals.get(element);
-      if (!original) return;
-      if (original.html.trim()) {
-        element.innerHTML = original.html;
-      } else if (original.text) {
-        element.textContent = original.text;
-      } else if (element.matches(SPOOF_TITLE_SELECTOR)) {
-        element.textContent = actualVideoTitle();
-      } else if (element.matches(SPOOF_CHANNEL_SELECTOR)) {
-        const channel = originalChannelName();
-        if (channel) element.textContent = channel;
-      }
-    });
-    spoofImageElements.forEach((element) => {
-      const original = spoofImageOriginals.get(element);
-      if (!element.isConnected || !original) return;
-      ["src", "srcset", "sizes", "data-src", "alt"].forEach((name) => {
-        const value = original[name === "data-src" ? "dataSrc" : name];
-        if (value === null || value === undefined) element.removeAttribute(name);
-        else element.setAttribute(name, value);
-      });
-    });
-    spoofTextElements.clear();
-    spoofImageElements.clear();
-    spoofTextOriginals = new WeakMap();
-    spoofImageOriginals = new WeakMap();
-    spoofFaviconElements.forEach((element) => {
-      if (!element.isConnected) return;
-      if (element === spoofFaviconCreated) {
-        element.remove();
-        return;
-      }
-      const original = spoofFaviconOriginals.get(element);
-      if (original === null || original === undefined) element.removeAttribute("href");
-      else element.setAttribute("href", original);
-    });
-    spoofFaviconElements.clear();
-    spoofFaviconOriginals = new WeakMap();
-    spoofFaviconCreated = null;
-  }
-
-  function recoverSpoofTextWhenOff() {
-    if (titleSpoofActive) return;
-    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
-    const title = actualVideoTitle();
-    if (title) {
-      document.querySelectorAll(SPOOF_TITLE_SELECTOR).forEach((element) => {
-        const current = (element.textContent || "").replace(/\s+/g, " ").trim();
-        if (isSpoofedMetadataValue(current, fakeTitle, spoofedTitleValues)) {
-          element.textContent = title;
-        }
-      });
-    }
-    const fakeChannel =
-      typeof S.titleSpoofChannelName === "string" ? S.titleSpoofChannelName.trim() : "";
-    const channel = originalChannelName();
-    if (channel) {
-      document.querySelectorAll(SPOOF_CHANNEL_SELECTOR).forEach((element) => {
-        const current = (element.textContent || "").replace(/\s+/g, " ").trim();
-        if (isSpoofedMetadataValue(current, fakeChannel, spoofedChannelValues)) {
-          element.textContent = channel;
-        }
-      });
-    }
-  }
-
-  function syncSpoofMode() {
-    if (!titleSpoofActive) return;
-    ensureTitleSpoofStyle().disabled = false;
-    document.querySelectorAll(".html5-video-player,#movie_player").forEach((player) => {
-      player.classList.toggle("yts-title-spoof-active", titleSpoofActive);
-    });
-    applySpoofMetadata();
-  }
-
-  ensureTitleSpoofStyle();
 
   function syncTitleSpoof() {
     if (!titleSpoofActive) return;
-    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
+    const fakeTitle = titleSpoofSiteName(titleSpoofSiteUrl());
     const currentTitle = document.title;
 
     if (fakeTitle) {
@@ -1598,36 +1299,147 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     titleSpoofLastValue = "";
   }
 
+  const TITLE_SPOOF_SITE_CSS = `
+#yts-title-spoof-site-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: #fff !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+}
+#yts-title-spoof-site-overlay iframe {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  pointer-events: none !important;
+}
+`;
+
+  let titleSpoofSiteStyleEl = null;
+  let titleSpoofSiteOverlay = null;
+  let titleSpoofSiteFrame = null;
+
+  function ensureTitleSpoofSiteStyle() {
+    if (titleSpoofSiteStyleEl && titleSpoofSiteStyleEl.isConnected) return titleSpoofSiteStyleEl;
+    titleSpoofSiteStyleEl = document.createElement("style");
+    titleSpoofSiteStyleEl.id = "yts-title-spoof-site-style";
+    titleSpoofSiteStyleEl.textContent = TITLE_SPOOF_SITE_CSS;
+    (document.head || document.documentElement).appendChild(titleSpoofSiteStyleEl);
+    return titleSpoofSiteStyleEl;
+  }
+
+  function titleSpoofSiteUrl() {
+    const raw = typeof S.titleSpoofSiteUrl === "string" ? S.titleSpoofSiteUrl.trim() : "";
+    if (!raw) return "";
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+      if (!url.hostname) return "";
+      return url.href;
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function titleSpoofSiteName(url) {
+    if (!url) return "";
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname.replace(/^www\./i, "") || hostname;
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function removeTitleSpoofSiteOverlay() {
+    if (titleSpoofSiteFrame) titleSpoofSiteFrame.src = "about:blank";
+    if (titleSpoofSiteOverlay && titleSpoofSiteOverlay.isConnected) {
+      titleSpoofSiteOverlay.remove();
+    }
+    titleSpoofSiteFrame = null;
+    titleSpoofSiteOverlay = null;
+  }
+
+  function syncTitleSpoofSiteUrl() {
+    if (!titleSpoofActive) return;
+    const url = titleSpoofSiteUrl();
+    if (!url) {
+      removeTitleSpoofSiteOverlay();
+      titleSpoofActive = false;
+      restoreTitleSpoof();
+      restoreSpoofKeywordFilter();
+      return;
+    }
+    createTitleSpoofSiteOverlay(url);
+    syncTitleSpoof();
+  }
+
+  function restoreSpoofKeywordFilter() {
+    if (titleSpoofKeywordPrevious === null) return;
+    const previous = titleSpoofKeywordPrevious;
+    titleSpoofKeywordPrevious = null;
+    S.keywordEnabled = previous;
+    rebuildKeywords();
+    if (!previous) clearKeywordHidden();
+    storageSet({ keywordEnabled: previous });
+  }
+
+  function createTitleSpoofSiteOverlay(url) {
+    if (titleSpoofSiteOverlay && titleSpoofSiteOverlay.isConnected) {
+      if (titleSpoofSiteFrame && titleSpoofSiteFrame.src !== url) titleSpoofSiteFrame.src = url;
+      return true;
+    }
+    const root = document.documentElement || document.body;
+    if (!root) return false;
+
+    ensureTitleSpoofSiteStyle();
+    const overlay = document.createElement("div");
+    overlay.id = "yts-title-spoof-site-overlay";
+    overlay.setAttribute("aria-hidden", "true");
+
+    const frame = document.createElement("iframe");
+    frame.title = "";
+    frame.tabIndex = -1;
+    frame.referrerPolicy = "no-referrer";
+    frame.src = url;
+
+    overlay.appendChild(frame);
+    root.appendChild(overlay);
+    titleSpoofSiteOverlay = overlay;
+    titleSpoofSiteFrame = frame;
+    return true;
+  }
+
   function toggleTitleSpoof() {
     if (titleSpoofActive) {
       titleSpoofActive = false;
+      removeTitleSpoofSiteOverlay();
       restoreTitleSpoof();
-      document.querySelectorAll(".yts-title-spoof-active").forEach((element) => {
-        element.classList.remove("yts-title-spoof-active");
-      });
-      restoreSpoofMetadata();
-      recoverSpoofTextWhenOff();
-      clearSpoofSessionState();
-      if (titleSpoofKeywordPrevious !== null) {
-        const previous = titleSpoofKeywordPrevious;
-        titleSpoofKeywordPrevious = null;
-        S.keywordEnabled = previous;
-        rebuildKeywords();
-        if (!previous) clearKeywordHidden();
-        storageSet({ keywordEnabled: previous });
-      }
+      restoreSpoofKeywordFilter();
       return;
     }
-    const fakeTitle = typeof S.titleSpoofText === "string" ? S.titleSpoofText.trim() : "";
-    if (!fakeTitle) {
-      showToast(I18N.t("titleSpoofEmpty"));
+    const siteUrl = titleSpoofSiteUrl();
+    if (!siteUrl) {
+      showToast(I18N.t("titleSpoofSiteEmpty"));
       return;
     }
     titleSpoofOriginal = document.title;
-    titleSpoofOriginalChannelName = visibleChannelName();
     titleSpoofLastValue = "";
     titleSpoofActive = true;
-    titleSpoofUsedSinceLoad = true;
+    if (!createTitleSpoofSiteOverlay(siteUrl)) {
+      titleSpoofActive = false;
+      return;
+    }
     if (!S.keywordEnabled) {
       titleSpoofKeywordPrevious = false;
       S.keywordEnabled = true;
@@ -1635,7 +1447,6 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       storageSet({ keywordEnabled: true });
     }
     syncTitleSpoof();
-    syncSpoofMode();
   }
 
   // プレーヤーの大きさが変わると必要な倍率も変わる
@@ -1825,7 +1636,6 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     runScanTask("player cards style", syncPlayerCardsStyle);
     if (titleSpoofActive) {
       runScanTask("title spoof", syncTitleSpoof);
-      runScanTask("spoof visuals and metadata", syncSpoofMode);
     }
     runScanTask("keyword scan", scanKeywords);
     runScanTask("channel button scan", decorateChannelButtons);
@@ -1899,21 +1709,15 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
 
   // ---- SPA ナビゲーション ----
   let lastHref = location.href;
-  let lastVideoId = currentVideoId();
 
   function onNavigate() {
     resetRotation(); // 回転は動画ごとにリセットする
-    if (titleSpoofActive) {
-      restoreSpoofMetadata();
-      clearSpoofSessionState();
-    }
     syncShortsStyle();
     syncGameStyle();
     syncMixStyle();
     syncPlayerCardsStyle();
     if (titleSpoofActive) {
       syncTitleSpoof();
-      syncSpoofMode();
     }
     if (S.speedEnabled) {
       document.querySelectorAll("video").forEach(resetVideoSpeed);
@@ -1925,18 +1729,7 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
   function checkNavigation() {
     if (!alive) return;
     if (location.href !== lastHref) {
-      const previousVideoId = lastVideoId;
-      const nextVideoId = currentVideoId();
       lastHref = location.href;
-      lastVideoId = nextVideoId;
-      if (
-        titleSpoofUsedSinceLoad &&
-        nextVideoId &&
-        nextVideoId !== previousVideoId
-      ) {
-        window.location.reload();
-        return;
-      }
       onNavigate();
     }
   }
@@ -1990,6 +1783,9 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
     if (touched("boostEnabled") || touched("volumeBoost")) {
       applyBoost();
     }
+    if (touched("titleSpoofSiteUrl")) {
+      syncTitleSpoofSiteUrl();
+    }
     if (touched("rotationEnabled") && !S.rotationEnabled) {
       resetRotation();
     }
@@ -1999,13 +1795,24 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
 
   if (!extensionAlive()) return;
 
-  chrome.storage.sync.get(DEFAULTS, (res) => {
+  chrome.storage.sync.get(
+    Object.assign({}, DEFAULTS, {
+      titleSpoofBetaUrl: null,
+      titleSpoofChannelName: null,
+      titleSpoofIconUrl: null,
+      titleSpoofText: null,
+    }),
+    (res) => {
     if (chrome.runtime.lastError) return;
     const titleSpoofPatch = YTSShared.migrateTitleSpoofSettings(res);
     const migratedSettings = Object.assign({}, res, titleSpoofPatch);
     const previousKeywords = Array.isArray(res.ytFilterKeywords) ? res.ytFilterKeywords : [];
+    const legacyTitleSpoofKeys = YTSShared.TITLE_SPOOF_LEGACY_KEYS.filter(
+      (key) => typeof (res || {})[key] === "string"
+    );
     Object.assign(S, YTSShared.sanitizeSettings(migratedSettings));
     if (Object.keys(titleSpoofPatch).length) storageSet(titleSpoofPatch);
+    if (legacyTitleSpoofKeys.length) storageRemove(legacyTitleSpoofKeys);
     const cleanedKeywords = S.ytFilterKeywords;
     if (
       cleanedKeywords.length !== previousKeywords.length ||
@@ -2033,7 +1840,8 @@ yt-lockup-view-model:has(a[href*="start_radio=1"]) {
       startObserving();
       runScan();
     }
-  });
+    }
+  );
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "sync" || !alive) return;

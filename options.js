@@ -39,11 +39,8 @@ const el = {
   playerCardsToggle: $("playerCardsToggle"),
   playerCardsBadge: $("playerCardsBadge"),
 
-  titleSpoofForm: $("titleSpoofForm"),
-  titleSpoofInput: $("titleSpoofInput"),
-  titleSpoofMetaForm: $("titleSpoofMetaForm"),
-  titleSpoofChannelInput: $("titleSpoofChannelInput"),
-  titleSpoofIconInput: $("titleSpoofIconInput"),
+  titleSpoofSiteForm: $("titleSpoofSiteForm"),
+  titleSpoofSiteUrlInput: $("titleSpoofSiteUrlInput"),
 
   rotationToggle: $("rotationToggle"),
   rotationBadge: $("rotationBadge"),
@@ -184,14 +181,8 @@ function renderShorts() {
 }
 
 function renderTitleSpoof() {
-  if (document.activeElement !== el.titleSpoofInput) {
-    el.titleSpoofInput.value = state.titleSpoofText;
-  }
-  if (document.activeElement !== el.titleSpoofChannelInput) {
-    el.titleSpoofChannelInput.value = state.titleSpoofChannelName;
-  }
-  if (document.activeElement !== el.titleSpoofIconInput) {
-    el.titleSpoofIconInput.value = state.titleSpoofIconUrl;
+  if (document.activeElement !== el.titleSpoofSiteUrlInput) {
+    el.titleSpoofSiteUrlInput.value = state.titleSpoofSiteUrl;
   }
 }
 
@@ -368,22 +359,9 @@ el.playerCardsToggle.addEventListener("change", () =>
   update({ playerCardsEnabled: el.playerCardsToggle.checked })
 );
 
-el.titleSpoofForm.addEventListener("submit", (e) => {
+el.titleSpoofSiteForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  update({
-    titleSpoofText: el.titleSpoofInput.value,
-    titleSpoofChannelName: el.titleSpoofChannelInput.value,
-    titleSpoofIconUrl: el.titleSpoofIconInput.value,
-  });
-});
-
-el.titleSpoofMetaForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  update({
-    titleSpoofText: el.titleSpoofInput.value,
-    titleSpoofChannelName: el.titleSpoofChannelInput.value,
-    titleSpoofIconUrl: el.titleSpoofIconInput.value,
-  });
+  update({ titleSpoofSiteUrl: el.titleSpoofSiteUrlInput.value });
 });
 
 // ==================================================================

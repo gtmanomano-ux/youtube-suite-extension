@@ -35,7 +35,7 @@ Rotate the video left/right with a shortcut, by **1° / 45° / 90° / 180°** pe
 Amplifies the tab's audio up to **5×** using the Web Audio API, with a limiter to suppress clipping. While OFF the audio path is left completely untouched, so quality and volume stay exactly as normal.
 
 #### Title spoofing
-Enter a replacement title, channel name and optional icon URL on the options page. Press **Shift+R** while watching to hide the picture with a black layer while leaving audio audible, and replace the tab/window metadata. Starting spoof mode also enables the keyword filter.
+Enter the site URL to display on the options page. Press **Shift+R** while watching to replace only the page viewport with that site, use its hostname as the tab/window title, and leave video playback and audio running underneath. Starting spoof mode also enables the keyword filter. Sites that forbid iframe embedding cannot be displayed.
 
 #### Keyboard shortcuts
 
@@ -45,7 +45,7 @@ Enter a replacement title, channel name and optional icon URL on the options pag
 | <kbd>Shift</kbd>+<kbd>E</kbd> | Increase playback speed by 0.1 |
 | <kbd>Shift</kbd>+<kbd>A</kbd> | Rotate video left |
 | <kbd>Shift</kbd>+<kbd>D</kbd> | Rotate video right |
-| <kbd>Shift</kbd>+<kbd>R</kbd> | Toggle title spoofing |
+| <kbd>Shift</kbd>+<kbd>R</kbd> | Toggle integrated spoof mode |
 
 All five are freely reassignable from the options page (press "Edit", then the key combination). Duplicate assignments are rejected, and shortcuts are disabled while typing in the search box or a comment field.
 
@@ -123,6 +123,9 @@ YouTube は動画を読み込むたびに速度を 1.0x へ戻すため、読み
 #### 音量ブースト
 Web Audio API を使い、そのタブの音声を最大 **5倍** まで増幅します。歪みを抑えるリミッターを通しています。OFF の間は音声経路に一切手を加えないため、音質・音量は通常のままです。
 
+#### 偽装モード
+オプションページで画面に表示するサイトのURLを設定します。動画上で **Shift+R** を押すと、Windowsバーとブラウザバーの表示名をそのサイトのホスト名に変更し、ページ表示だけを指定サイトで上書きします。動画の再生と音声はそのまま継続します。iframe表示を禁止しているサイトは表示できません。開始時にはキーワードフィルターも自動的にONになります。
+
 #### ショートカットキー
 
 | 初期設定 | 動作 |
@@ -131,8 +134,9 @@ Web Audio API を使い、そのタブの音声を最大 **5倍** まで増幅�
 | <kbd>Shift</kbd>+<kbd>E</kbd> | 再生速度を 0.1 上げる |
 | <kbd>Shift</kbd>+<kbd>A</kbd> | 動画を左に回転 |
 | <kbd>Shift</kbd>+<kbd>D</kbd> | 動画を右に回転 |
+| <kbd>Shift</kbd>+<kbd>R</kbd> | 偽装モードを切り替え |
 
-4つともオプションページから自由に変更できます（「変更」を押してから使いたいキーの組み合わせを押す）。他の操作と重複する割り当ては弾かれ、検索欄やコメント入力中はショートカットが無効になります。
+5つともオプションページから自由に変更できます（「変更」を押してから使いたいキーの組み合わせを押す）。他の操作と重複する割り当ては弾かれ、検索欄やコメント入力中はショートカットが無効になります。
 
 #### 言語
 ブラウザの表示言語に応じて日本語／英語が自動で切り替わります（`ja` なら日本語、それ以外は英語）。オプションページからどちらかに固定することもできます。

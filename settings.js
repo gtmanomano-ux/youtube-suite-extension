@@ -138,12 +138,24 @@ const YTS = (() => {
   const load = () =>
     new Promise((resolve) =>
       chrome.storage.sync.get(
-        Object.assign({ blockedChannels: [] }, DEFAULTS),
+        Object.assign(
+          {
+            blockedChannels: [],
+            titleSpoofBetaUrl: null,
+            titleSpoofChannelName: null,
+            titleSpoofIconUrl: null,
+            titleSpoofText: null,
+          },
+          DEFAULTS
+        ),
         (res) => {
           const raw = chrome.runtime.lastError ? null : res;
           const titleSpoofPatch = YTSShared.migrateTitleSpoofSettings(raw);
           const settings = sanitize(Object.assign({}, raw || {}, titleSpoofPatch));
           const rawKeywords = raw && Array.isArray(raw.ytFilterKeywords) ? raw.ytFilterKeywords : [];
+          const legacyTitleSpoofKeys = YTSShared.TITLE_SPOOF_LEGACY_KEYS.filter(
+            (key) => typeof (raw || {})[key] === "string"
+          );
           migrate(raw, settings).then((migrated) => {
             const changed =
               rawKeywords.length !== migrated.ytFilterKeywords.length ||
@@ -152,11 +164,18 @@ const YTS = (() => {
             if (changed && !(raw && Array.isArray(raw.blockedChannels) && raw.blockedChannels.length)) {
               patch.ytFilterKeywords = migrated.ytFilterKeywords;
             }
+            const finish = () => {
+              if (!legacyTitleSpoofKeys.length) {
+                resolve(migrated);
+                return;
+              }
+              chrome.storage.sync.remove(legacyTitleSpoofKeys, () => resolve(migrated));
+            };
             if (Object.keys(patch).length) {
-              chrome.storage.sync.set(patch, () => resolve(migrated));
+              chrome.storage.sync.set(patch, finish);
               return;
             }
-            resolve(migrated);
+            finish();
           });
         }
       )

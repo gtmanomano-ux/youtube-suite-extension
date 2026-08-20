@@ -13,9 +13,7 @@ const YTSShared = (() => {
     playbackSpeed: 1.0,
     boostEnabled: false,
     volumeBoost: 2.0,
-    titleSpoofText: "",
-    titleSpoofChannelName: "",
-    titleSpoofIconUrl: "",
+    titleSpoofSiteUrl: "https://example.com/",
     titleSpoofDataVersion: 0,
     language: "auto",
     rotationEnabled: true,
@@ -38,21 +36,31 @@ const YTSShared = (() => {
   const BLOCK_PREFIX_RE = /^\s*[×✕✖☓✗]\s*/;
   const EXACT_RE = /^"([\s\S]*)"$/;
   const JAPANESE_EXACT_RE = /^[「『“‘]([\s\S]*)[」』”’]$/;
+  const TITLE_SPOOF_LEGACY_KEYS = [
+    "titleSpoofBetaUrl",
+    "titleSpoofChannelName",
+    "titleSpoofIconUrl",
+    "titleSpoofText",
+  ];
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const round2 = (n) => Math.round(n * 100) / 100;
 
   function migrateTitleSpoofSettings(raw) {
     const source = raw && typeof raw === "object" ? raw : {};
-    if (Number(source.titleSpoofDataVersion) >= 1) return {};
+    const version = Number(source.titleSpoofDataVersion);
+    const hasLegacySettings = TITLE_SPOOF_LEGACY_KEYS.some(
+      (key) => typeof source[key] === "string"
+    );
+    if (version >= 4 && !hasLegacySettings) return {};
 
-    const patch = { titleSpoofDataVersion: 1 };
-    ["titleSpoofText", "titleSpoofChannelName"].forEach((key) => {
-      const value = source[key];
-      if (typeof value === "string" && value.trim().toLowerCase() === "youtube") {
-        patch[key] = "";
-      }
-    });
+    const patch = version >= 4 ? {} : { titleSpoofDataVersion: 4 };
+    if (
+      typeof source.titleSpoofSiteUrl !== "string" &&
+      typeof source.titleSpoofBetaUrl === "string"
+    ) {
+      patch.titleSpoofSiteUrl = source.titleSpoofBetaUrl;
+    }
     return patch;
   }
 
@@ -152,19 +160,12 @@ const YTSShared = (() => {
     result.ytFilterKeywords = sanitizeKeywordList(source.ytFilterKeywords);
     result.playbackSpeed = clamp(result.playbackSpeed, SPEED, 1.0);
     result.volumeBoost = clamp(result.volumeBoost, BOOST, 1.0);
-    result.titleSpoofText =
-      typeof source.titleSpoofText === "string"
-        ? source.titleSpoofText.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 200)
-        : DEFAULTS.titleSpoofText;
-    result.titleSpoofChannelName =
-      typeof source.titleSpoofChannelName === "string"
-        ? source.titleSpoofChannelName.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 100)
-        : DEFAULTS.titleSpoofChannelName;
-    result.titleSpoofIconUrl =
-      typeof source.titleSpoofIconUrl === "string"
-        ? source.titleSpoofIconUrl.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 4000)
-        : DEFAULTS.titleSpoofIconUrl;
-    result.titleSpoofDataVersion = Number(source.titleSpoofDataVersion) >= 1 ? 1 : 0;
+    result.titleSpoofSiteUrl =
+      typeof source.titleSpoofSiteUrl === "string"
+        ? source.titleSpoofSiteUrl.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 4000)
+        : DEFAULTS.titleSpoofSiteUrl;
+    result.titleSpoofDataVersion = Number(source.titleSpoofDataVersion) >= 4 ? 4 : 0;
+    TITLE_SPOOF_LEGACY_KEYS.forEach((key) => delete result[key]);
     result.rotationStep = ROTATION_STEPS.includes(Number(result.rotationStep))
       ? Number(result.rotationStep)
       : DEFAULTS.rotationStep;
@@ -180,6 +181,7 @@ const YTSShared = (() => {
     ROTATION_STEPS,
     SPEED,
     BOOST,
+    TITLE_SPOOF_LEGACY_KEYS,
     clone,
     clampSpeed: (value) => clamp(value, SPEED, 1.0),
     clampBoost: (value) => clamp(value, BOOST, 1.0),

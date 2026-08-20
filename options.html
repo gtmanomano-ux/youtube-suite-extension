@@ -230,20 +230,12 @@
     </section>
 
     <section class="card">
-      <div class="section-label" data-i18n="titleSpoofSection">タイトル表示の偽装</div>
-      <form class="input-row" id="titleSpoofForm">
-        <input type="text" id="titleSpoofInput" data-i18n-placeholder="titleSpoofPlaceholder" maxlength="200" autocomplete="off" />
+      <div class="section-label" data-i18n="titleSpoofSiteSection">偽装するサイト</div>
+      <form class="input-row" id="titleSpoofSiteForm">
+        <input type="url" id="titleSpoofSiteUrlInput" data-i18n-placeholder="titleSpoofSiteUrlPlaceholder" maxlength="4000" autocomplete="off" />
+        <button type="submit" data-i18n="titleSpoofSiteSave">保存</button>
       </form>
-      <form id="titleSpoofMetaForm">
-        <div class="input-row">
-          <input type="text" id="titleSpoofChannelInput" data-i18n-placeholder="titleSpoofChannelPlaceholder" maxlength="100" autocomplete="off" />
-        </div>
-        <div class="input-row">
-          <input type="text" id="titleSpoofIconInput" data-i18n-placeholder="titleSpoofIconPlaceholder" maxlength="4000" autocomplete="off" />
-          <button type="submit" data-i18n="titleSpoofSave">保存</button>
-        </div>
-      </form>
-      <p class="desc" data-i18n="titleSpoofDesc"></p>
+      <p class="desc" data-i18n="titleSpoofSiteDesc"></p>
     </section>
 
     <!-- 言語 -->
@@ -356,7 +348,7 @@
     </section>
   </div>
 
-  <p class="footer">v3.6.0 — YouTube Suite</p>
+  <p class="footer">v3.7.0 — YouTube Suite</p>
 </div>
 
 <script src="i18n.js"></script>

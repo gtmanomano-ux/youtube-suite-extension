@@ -83,7 +83,7 @@ const I18N = (() => {
       actSpeedUp: "再生速度を上げる",
       actRotateLeft: "動画を左に回転",
       actRotateRight: "動画を右に回転",
-      actTitleSpoof: "タブとウィンドウ表示を偽装",
+      actTitleSpoof: "偽装モードを切り替え",
 
       boostSection: "音量ブースト",
       boostToggle: "YouTubeの最大音量を超えて増幅する",
@@ -103,16 +103,12 @@ const I18N = (() => {
       playerCardsToggle: "動画内に表示されるカードをすべて非表示",
       playerCardsDesc:
         "動画プレーヤー内の終了後おすすめ・次の動画・プレイリスト・チャンネル・関連動画カードと、再生中に表示されるカードを対象にします。ホーム画面や通常の関連動画欄のカードには影響しません。",
-      titleSpoofSection: "タイトル表示の偽装",
-      titleSpoofPlaceholder: "例: 作業用BGMを再生中",
-      titleSpoofChannelPlaceholder: "偽装するチャンネル名（任意）",
-      titleSpoofIconPlaceholder: "偽装するアイコン画像のURL（任意）",
-      titleSpoofSave: "保存",
-      titleSpoofDesc:
-        "動画上で Shift+R を押すと偽装モードを切り替えます。偽装中は映像を黒くして音声だけを再生し、タイトル・チャンネル名・アイコンをここで指定した内容に置き換えます。開始時にはキーワードフィルターも自動的にONになります。",
-      titleSpoofEmpty: "偽装する文字列を先に保存してください。",
-      titleSpoofOn: "タイトル表示を偽装中",
-      titleSpoofOff: "元のタイトルに戻しました",
+      titleSpoofSiteSection: "偽装するサイト",
+      titleSpoofSiteUrlPlaceholder: "画面に表示する別サイトのURL（例: https://example.com/）",
+      titleSpoofSiteSave: "保存",
+      titleSpoofSiteDesc:
+        "Shift+Rで偽装モードを切り替えると、Windowsバーとブラウザバーの表示名をこのURLのサイト名に変更し、ページ表示だけをこのサイトで上書きします。動画の再生と音声はそのままです。サイト側がiframe表示を禁止している場合は表示できません。",
+      titleSpoofSiteEmpty: "画面に表示するサイトのhttp(s) URLを保存してください。",
 
       langSection: "言語 / Language",
       langDesc:
@@ -155,7 +151,7 @@ const I18N = (() => {
       hKeySpeedDown: "再生速度を 0.1 下げる",
       hKeyRotRight: "動画を右に回転",
       hKeyRotLeft: "動画を左に回転",
-      hKeyTitleSpoof: "タブとウィンドウのタイトル表示を偽装",
+      hKeyTitleSpoof: "Windowsバー・ブラウザバーを変更し、ページ表示を別サイトで上書き",
       hKeyNote:
         "上記は初期設定で、「その他」タブの<b>ショートカットキー</b>から自由に変更できます。変更した速度・角度は画面上部に一瞬表示されます。速度はそのまま設定として保存されます。検索欄やコメント入力中は誤操作を防ぐため無効になります。",
       hKeyWarn:
@@ -285,7 +281,7 @@ const I18N = (() => {
       actSpeedUp: "Increase playback speed",
       actRotateLeft: "Rotate video left",
       actRotateRight: "Rotate video right",
-      actTitleSpoof: "Spoof tab and window title",
+      actTitleSpoof: "Toggle spoof mode",
 
       boostSection: "Volume boost",
       boostToggle: "Amplify beyond YouTube's maximum volume",
@@ -305,16 +301,12 @@ const I18N = (() => {
       playerCardsToggle: "Hide all cards shown inside the video",
       playerCardsDesc:
         "Targets end-of-video recommendations, up-next, playlist and channel cards, related video cards, and cards shown during playback. Home and normal related-video list cards are not affected.",
-      titleSpoofSection: "Title display spoofing",
-      titleSpoofPlaceholder: "e.g. Playing background music",
-      titleSpoofChannelPlaceholder: "Spoof channel name (optional)",
-      titleSpoofIconPlaceholder: "Spoof icon image URL (optional)",
-      titleSpoofSave: "Save",
-      titleSpoofDesc:
-        "Press Shift+R on the video to toggle spoof mode. While active, the picture is black while audio continues, and the title, channel name and icon are replaced with the values entered here. The keyword filter is also turned ON automatically when the mode starts.",
-      titleSpoofEmpty: "Save a spoof title first.",
-      titleSpoofOn: "Title display spoofing is ON",
-      titleSpoofOff: "Restored the original title",
+      titleSpoofSiteSection: "Site to display while spoofing",
+      titleSpoofSiteUrlPlaceholder: "URL of the other site to display (e.g. https://example.com/)",
+      titleSpoofSiteSave: "Save",
+      titleSpoofSiteDesc:
+        "When spoof mode is toggled with Shift+R, the Windows and browser bars use this URL's site name while only the page display is replaced by the site. Video playback and audio continue underneath. Sites that forbid iframe embedding cannot be displayed.",
+      titleSpoofSiteEmpty: "Save an http(s) URL for the site to display first.",
 
       langSection: "Language / 言語",
       langDesc:
@@ -357,7 +349,7 @@ const I18N = (() => {
       hKeySpeedDown: "Decrease playback speed by 0.1",
       hKeyRotRight: "Rotate the video right",
       hKeyRotLeft: "Rotate the video left",
-      hKeyTitleSpoof: "Spoof the tab and window title",
+      hKeyTitleSpoof: "Change the Windows/browser bars and replace the page with another site",
       hKeyNote:
         'These are the defaults; change them freely under <b>Keyboard shortcuts</b> on the "Other" tab. The new speed or angle flashes briefly at the top of the screen, and the speed is saved as your setting. Shortcuts are disabled while typing in the search box or a comment field.',
       hKeyWarn:
